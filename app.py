@@ -592,7 +592,8 @@ def upload():
 
     discord_id = session["discord_id"]
     if not has_role(discord_id):
-        return render_template("upload.html", error="you need the nyaposter role on this server to upload :3c")
+        flash("you need the nyaposter role on this server to upload :3c", "error")
+        return redirect(url_for("index"))
 
     if request.method == "GET":
         return render_template("upload.html")
@@ -600,28 +601,33 @@ def upload():
     verify_csrf()
 
     if "file" not in request.files:
-        return render_template("upload.html", error="no file selected :3c")
+        flash("no file selected :3c", "error")
+        return redirect(url_for("index"))
 
     f = request.files["file"]
     if not f.filename:
-        return render_template("upload.html", error="no file selected :3c")
+        flash("no file selected :3c", "error")
+        return redirect(url_for("index"))
 
     ext = Path(f.filename).suffix.lower()
     if ext not in config.ALLOWED_EXTENSIONS:
-        return render_template("upload.html", error=f"nooo `{ext}` is banned sorry :3c")
+        flash(f"nooo `{ext}` is banned sorry :3c", "error")
+        return redirect(url_for("index"))
 
     f.seek(0, os.SEEK_END)
     file_size = f.tell()
     f.seek(0)
 
     if file_size > config.MAX_FILE_SIZE:
-        return render_template("upload.html", error=f"thats too big!! max {config.MAX_FILE_SIZE // 1024 // 1024} MB :3c")
+        flash(f"thats too big!! max {config.MAX_FILE_SIZE // 1024 // 1024} MB :3c", "error")
+        return redirect(url_for("index"))
 
     data = f.read()
 
     mime_type = magic.from_buffer(data, mime=True)
     if not any(mime_type.startswith(p) for p in config.ALLOWED_MIME_PREFIXES):
-        return render_template("upload.html", error="eep!! that file type isnt allowed :3c")
+        flash("eep!! that file type isnt allowed :3c", "error")
+        return redirect(url_for("index"))
 
     with get_db() as conn:
         cur = conn.execute(
@@ -640,7 +646,8 @@ def upload():
         with get_db() as conn:
             conn.execute("DELETE FROM memes WHERE id = ?", (meme_id,))
             conn.commit()
-        return render_template("upload.html", error="ack!! couldnt save the file :3c")
+        flash("ack!! couldnt save the file :3c", "error")
+        return redirect(url_for("index"))
 
     with get_db() as conn:
         conn.execute("UPDATE memes SET filename = ? WHERE id = ?", (final_filename, meme_id))
