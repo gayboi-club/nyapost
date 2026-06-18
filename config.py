@@ -18,6 +18,6 @@ FLASK_DEBUG = os.environ.get("FLASK_DEBUG", "0") == "1"
 MEMES_DIR = os.path.join(BASE_DIR, "memes")
 DB_PATH = os.path.join(BASE_DIR, "nyapost.db")
 
-MAX_FILE_SIZE = 50 * 1024 * 1024
+MAX_FILE_SIZE = 500 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".webm", ".mov"}
 ALLOWED_MIME_PREFIXES = {"image/", "video/"}
