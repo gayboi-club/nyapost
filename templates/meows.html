@@ -89,8 +89,8 @@ function loadPage() {
     loading = true;
     loader.textContent = 'loading...';
 
-    fetch('/api/meows?page=' + page + '&per_page=5')
-        .then(r => r.json())
+    fetch('/api/meows?page=' + page + '&per_page=5', { signal: AbortSignal.timeout(10000) })
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
         .then(memes => {
             if (memes.length === 0) {
                 hasMore = false;
