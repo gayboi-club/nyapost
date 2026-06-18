@@ -6,7 +6,7 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN", "")
 DISCORD_GUILD_ID = int(os.environ.get("DISCORD_GUILD_ID", "0"))
-DISCORD_ROLE_NAME = os.environ.get("DISCORD_ROLE_NAME", "nyaposter")
+DISCORD_ROLE_ID = int(os.environ.get("DISCORD_ROLE_ID", "1517165526781137077"))
 
 FLASK_API_KEY = os.environ.get("FLASK_API_KEY", "nyapost-dev-key")
 FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", FLASK_API_KEY)

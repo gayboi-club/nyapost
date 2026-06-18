@@ -56,9 +56,9 @@ def get_db():
 @app_commands.guild_only()
 @app_commands.describe(file="The media file to upload as a nyapost")
 async def nyapost(interaction: discord.Interaction, file: discord.Attachment):
-    role = discord.utils.get(interaction.user.roles, name=config.DISCORD_ROLE_NAME)
+    role = discord.utils.get(interaction.user.roles, id=config.DISCORD_ROLE_ID)
     if role is None:
-        await interaction.response.send_message("nuh uh you need the **nyaposter** role :3c", ephemeral=True)
+        await interaction.response.send_message("nuh uh you need the nyaposter role :3c", ephemeral=True)
         return
 
     ext = os.path.splitext(file.filename)[1].lower()
@@ -100,7 +100,7 @@ async def nyapost(interaction: discord.Interaction, file: discord.Attachment):
         cur = conn.execute(
             """INSERT INTO memes (filename, original_name, uploaded_by, uploaded_by_name, mime_type, file_size)
                VALUES (?, ?, ?, ?, ?, ?)""",
-            ("pending", clean_name, str(interaction.user.id), interaction.user.display_name, mime_type, file.size),
+            ("pending", clean_name, str(interaction.user.id), interaction.user.name, mime_type, file.size),
         )
         meme_id = cur.lastrowid
         conn.commit()
