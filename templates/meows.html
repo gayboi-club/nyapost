@@ -113,7 +113,7 @@ function buildCard(m) {
             toggleSound();
         });
     } else {
-        media.innerHTML = '<img src="/media/' + m.id + '" alt="" loading="lazy">';
+        media.innerHTML = '<a href="/p/' + m.id + '"><img src="/media/' + m.id + '" alt="" loading="lazy"></a>';
     }
 
     const overlay = document.createElement('div');
