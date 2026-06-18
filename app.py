@@ -21,7 +21,8 @@ import magic
 from PIL import Image
 from flask import (
     Flask, render_template, send_file, request,
-    jsonify, abort, redirect, url_for, session, make_response,
+    jsonify, abort, redirect, url_for, session,
+    make_response, flash, get_flashed_messages,
 )
 from markupsafe import Markup
 from flask_compress import Compress
@@ -657,6 +658,29 @@ def upload():
     invalidate_cache()
 
     return redirect(url_for("meme_page", meme_id=meme_id))
+
+
+# ── Meows Feed ───────────────────────────────────────────────────
+
+@app.route("/meows")
+def meows():
+    return render_template("meows.html")
+
+
+@app.route("/api/meows")
+def api_meows():
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 5, type=int)
+    per_page = min(per_page, 20)
+    offset = (page - 1) * per_page
+
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, filename, original_name, mime_type, file_size, uploaded_by_name FROM memes ORDER BY id DESC LIMIT ? OFFSET ?",
+            (per_page, offset),
+        ).fetchall()
+
+    return jsonify([dict(r) for r in rows])
 
 
 # ── Main ─────────────────────────────────────────────────────────

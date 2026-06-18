@@ -724,3 +724,97 @@ footer a:hover {
     color: var(--green);
     background: rgba(167, 192, 128, 0.08);
 }
+
+.btn-nav {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    border: 1px solid var(--bg3);
+    background: transparent;
+    color: var(--fg);
+    transition: border-color 0.15s ease, color 0.15s ease;
+    text-decoration: none;
+    font-weight: 600;
+    font-family: inherit;
+}
+
+.btn-nav:hover {
+    border-color: var(--blue);
+    color: var(--blue);
+}
+
+/* ── Meows Feed ──────────────────────────────────────────────── */
+
+.meows-header h1 {
+    font-size: 1.2rem;
+    color: var(--gray2);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.meows-feed {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.meow-card {
+    background: var(--bg1);
+    border: 1px solid var(--bg2);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.meow-media {
+    background: var(--bg0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+.meow-media img,
+.meow-media video {
+    width: 100%;
+    display: block;
+    max-height: 80vh;
+    object-fit: contain;
+}
+
+.meow-info {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.meow-title {
+    color: var(--fg);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.meow-title:hover {
+    color: var(--blue);
+}
+
+.meow-meta {
+    color: var(--gray0);
+    font-size: 0.75rem;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.meows-loader {
+    text-align: center;
+    color: var(--gray0);
+    font-size: 0.85rem;
+    padding: 2rem 0;
+}
