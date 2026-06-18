@@ -36,9 +36,10 @@ class NyapostBot(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        self.tree.add_command(nyapost)
-        self.tree.add_command(nyapost_refresh)
-        await self.tree.sync()
+        guild = discord.Object(id=config.DISCORD_GUILD_ID)
+        self.tree.add_command(nyapost, guild=guild)
+        self.tree.add_command(nyapost_refresh, guild=guild)
+        await self.tree.sync(guild=guild)
 
 
 client = NyapostBot()
@@ -155,7 +156,7 @@ async def nyapost_refresh(interaction: discord.Interaction):
         async with aiohttp.ClientSession() as session:
             headers = {"X-API-Key": config.FLASK_API_KEY}
             async with session.post(
-                f"{config.FLASK_BASE_URL}/api/admin/refetch_memes_from_disk",
+                f"http://127.0.0.1:{config.FLASK_PORT}/api/admin/refetch_memes_from_disk",
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=10),
             ) as resp:
