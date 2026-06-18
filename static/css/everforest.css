@@ -643,3 +643,88 @@ footer a {
 footer a:hover {
     color: var(--aqua);
 }
+
+/* ── Upload ──────────────────────────────────────────────────── */
+
+.upload-container {
+    max-width: 500px;
+    margin: 2rem auto;
+}
+
+.upload-container h1 {
+    font-size: 1.2rem;
+    color: var(--gray2);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.upload-error {
+    background: var(--bg1);
+    border: 1px solid var(--red);
+    color: var(--red);
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.upload-dropzone {
+    border: 2px dashed var(--bg3);
+    border-radius: 10px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: var(--bg-dim);
+    margin-bottom: 1rem;
+}
+
+.upload-dropzone:hover,
+.upload-dropzone.dragover {
+    border-color: var(--blue);
+    background: var(--bg1);
+}
+
+.upload-dropzone-content svg {
+    color: var(--gray0);
+    margin-bottom: 0.5rem;
+}
+
+.upload-dropzone-text {
+    color: var(--fg);
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+}
+
+.upload-dropzone-hint {
+    color: var(--gray0);
+    font-size: 0.75rem;
+}
+
+.upload-submit {
+    width: 100%;
+    padding: 0.7rem;
+    font-size: 0.95rem;
+}
+
+.btn-upload {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border: 1px solid var(--bg3);
+    background: transparent;
+    color: var(--green);
+    transition: border-color 0.15s ease, color 0.15s ease;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.btn-upload:hover {
+    border-color: var(--green);
+    color: var(--green);
+    background: rgba(167, 192, 128, 0.08);
+}

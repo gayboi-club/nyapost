@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}upload — nyapost{% endblock %}
+{% block content %}
+<div class="upload-container">
+    <h1>upload a nyapost</h1>
+
+    {% if error %}
+    <div class="upload-error">{{ error }}</div>
+    {% endif %}
+
+    <form class="upload-form" action="{{ url_for('upload') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="upload-dropzone" id="dropzone">
+            <div class="upload-dropzone-content">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="upload-dropzone-text">drop a file here or click to browse</p>
+                <p class="upload-dropzone-hint">images & video up to 500 MB</p>
+            </div>
+            <input type="file" name="file" id="file-input" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov" hidden>
+        </div>
+        <button type="submit" class="btn btn-primary upload-submit">upload</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+
+dropzone.addEventListener('click', () => fileInput.click());
+
+dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+});
+
+dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('dragover');
+});
+
+dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        const name = e.dataTransfer.files[0].name;
+        dropzone.querySelector('.upload-dropzone-text').textContent = name;
+    }
+});
+
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+        dropzone.querySelector('.upload-dropzone-text').textContent = fileInput.files[0].name;
+    }
+});
+</script>
+{% endblock %}

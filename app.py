@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import mistune
+import magic
+from PIL import Image
 from flask import (
     Flask, render_template, send_file, request,
     jsonify, abort, redirect, url_for, session, make_response,
@@ -150,6 +152,67 @@ def verify_csrf():
     expected = session.get("_csrf_token", "")
     if not expected or not hmac.compare_digest(token, expected):
         abort(403)
+
+
+# ── Upload Helpers ───────────────────────────────────────────────
+
+def clean_filename(name):
+    name = re.sub(r'[^a-zA-Z0-9._-]', '_', Path(name).name)
+    if len(name) > 200:
+        name = name[:200]
+    return name
+
+
+def generate_thumbnail(meme_id, source_path, mime_type):
+    if not mime_type.startswith("image/"):
+        return
+    try:
+        THUMB_DIR.mkdir(parents=True, exist_ok=True)
+        img = Image.open(source_path)
+        img.thumbnail(THUMB_SIZE, Image.LANCZOS)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        img.save(str(THUMB_DIR / f"{meme_id}.jpg"), "JPEG", quality=80)
+    except Exception:
+        pass
+
+
+_role_cache = {}
+_role_cache_lock = threading.Lock()
+ROLE_CACHE_TTL = 300
+
+
+def has_role(discord_id):
+    with _role_cache_lock:
+        entry = _role_cache.get(discord_id)
+        if entry and time.time() - entry["t"] < ROLE_CACHE_TTL:
+            return entry["v"]
+
+    try:
+        req = urllib.request.Request(
+            f"https://discord.com/api/v10/guilds/{config.DISCORD_GUILD_ID}/members/{discord_id}",
+            headers={
+                "Authorization": f"Bot {config.DISCORD_TOKEN}",
+                "User-Agent": "nyapost/1.0",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            member = json.loads(resp.read())
+            roles = member.get("roles", [])
+            result = str(config.DISCORD_ROLE_ID) in roles
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            result = False
+        else:
+            app.logger.error("role check http %s: %s", e.code, e.read().decode(errors="replace"))
+            result = False
+    except Exception as e:
+        app.logger.error("role check failed: %s", e, exc_info=True)
+        result = False
+
+    with _role_cache_lock:
+        _role_cache[discord_id] = {"v": result, "t": time.time()}
+    return result
 
 
 # ── Context Processors ───────────────────────────────────────────
@@ -518,6 +581,75 @@ def refetch():
     count = sync_from_disk()
     invalidate_cache()
     return jsonify({"synced": count, "total": len(all_memes())})
+
+
+# ── Web Upload ────────────────────────────────────────────────────
+
+@app.route("/upload", methods=["GET", "POST"])
+def upload():
+    if "discord_id" not in session:
+        return redirect(url_for("login", next=url_for("upload")))
+
+    discord_id = session["discord_id"]
+    if not has_role(discord_id):
+        return render_template("upload.html", error="you need the nyaposter role on this server to upload :3c")
+
+    if request.method == "GET":
+        return render_template("upload.html")
+
+    verify_csrf()
+
+    if "file" not in request.files:
+        return render_template("upload.html", error="no file selected :3c")
+
+    f = request.files["file"]
+    if not f.filename:
+        return render_template("upload.html", error="no file selected :3c")
+
+    ext = Path(f.filename).suffix.lower()
+    if ext not in config.ALLOWED_EXTENSIONS:
+        return render_template("upload.html", error=f"nooo `{ext}` is banned sorry :3c")
+
+    f.seek(0, os.SEEK_END)
+    file_size = f.tell()
+    f.seek(0)
+
+    if file_size > config.MAX_FILE_SIZE:
+        return render_template("upload.html", error=f"thats too big!! max {config.MAX_FILE_SIZE // 1024 // 1024} MB :3c")
+
+    data = f.read()
+
+    mime_type = magic.from_buffer(data, mime=True)
+    if not any(mime_type.startswith(p) for p in config.ALLOWED_MIME_PREFIXES):
+        return render_template("upload.html", error="eep!! that file type isnt allowed :3c")
+
+    with get_db() as conn:
+        cur = conn.execute(
+            """INSERT INTO memes (filename, original_name, uploaded_by, uploaded_by_name, mime_type, file_size)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            ("pending", clean_filename(f.filename), discord_id, session.get("discord_username", ""), mime_type, file_size),
+        )
+        meme_id = cur.lastrowid
+        conn.commit()
+
+    final_filename = f"{meme_id}_{clean_filename(f.filename)}"
+    final_path = MEMES_DIR / final_filename
+    try:
+        final_path.write_bytes(data)
+    except Exception:
+        with get_db() as conn:
+            conn.execute("DELETE FROM memes WHERE id = ?", (meme_id,))
+            conn.commit()
+        return render_template("upload.html", error="ack!! couldnt save the file :3c")
+
+    with get_db() as conn:
+        conn.execute("UPDATE memes SET filename = ? WHERE id = ?", (final_filename, meme_id))
+        conn.commit()
+
+    generate_thumbnail(meme_id, final_path, mime_type)
+    invalidate_cache()
+
+    return redirect(url_for("meme_page", meme_id=meme_id))
 
 
 # ── Main ─────────────────────────────────────────────────────────
