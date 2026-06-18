@@ -36,6 +36,7 @@ class NyapostBot(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
+        await self.tree.sync(guild=None)
         guild = discord.Object(id=config.DISCORD_GUILD_ID)
         self.tree.add_command(nyapost, guild=guild)
         self.tree.add_command(nyapost_refresh, guild=guild)
