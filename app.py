@@ -235,6 +235,7 @@ def callback():
             headers={
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Authorization": f"Basic {creds}",
+                "User-Agent": "nyapost/1.0",
             },
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
@@ -244,7 +245,10 @@ def callback():
 
         req2 = urllib.request.Request(
             "https://discord.com/api/users/@me",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "User-Agent": "nyapost/1.0",
+            },
         )
         with urllib.request.urlopen(req2, timeout=10) as resp2:
             user = json.loads(resp2.read())
