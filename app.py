@@ -21,6 +21,7 @@ from flask import (
     Flask, render_template, send_file, request,
     jsonify, abort, redirect, url_for, session, make_response,
 )
+from markupsafe import Markup
 from flask_compress import Compress
 
 import config
@@ -157,7 +158,7 @@ def verify_csrf():
 def inject_globals():
     def avatar(discord_id, avatar_hash, size=32):
         url = avatar_url(avatar_hash, discord_id)
-        return f'<img class="avatar" src="{url}" width="{size}" height="{size}" alt="">'
+        return Markup(f'<img class="avatar" src="{url}" width="{size}" height="{size}" alt="">')
 
     return {
         "site_url": config.FLASK_BASE_URL,
