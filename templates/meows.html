@@ -1,14 +1,11 @@
 {% extends "base.html" %}
 {% block title %}meows{% endblock %}
 {% block content %}
-<div class="meows-header">
-    <h1>meows</h1>
-</div>
-
-<div class="meows-feed" id="meows-feed"></div>
-
-<div class="meows-sentinel" id="meows-sentinel">
-    <span class="meows-loader" id="meows-loader">loading...</span>
+<div class="meows-feed" id="meows-feed">
+    <a href="{{ url_for('index') }}" class="meows-back" title="home">nyapost</a>
+    <div class="meows-sentinel" id="meows-sentinel">
+        <span class="meows-loader" id="meows-loader">loading...</span>
+    </div>
 </div>
 {% endblock %}
 
@@ -40,6 +37,7 @@ function playCard(card) {
     const video = card.querySelector('video');
     if (video) {
         video.muted = true;
+        video.currentTime = 0;
         video.play().catch(() => {});
     }
 }
@@ -50,11 +48,11 @@ const cardObserver = new IntersectionObserver((entries) => {
             playCard(entry.target);
         } else if (entry.target === activeCard) {
             const v = entry.target.querySelector('video');
-            if (v) v.pause();
+            if (v) { v.pause(); v.currentTime = 0; }
             activeCard = null;
         }
     }
-}, { threshold: [0.6] });
+}, { threshold: [0.7] });
 
 function buildCard(m) {
     const isVideo = m.mime_type && m.mime_type.startsWith('video/');
@@ -70,22 +68,19 @@ function buildCard(m) {
         media.innerHTML = '<img src="/media/' + m.id + '" alt="" loading="lazy">';
     }
 
-    const info = document.createElement('div');
-    info.className = 'meow-info';
-    info.innerHTML = '<a href="/p/' + m.id + '" class="meow-title">'
+    const overlay = document.createElement('div');
+    overlay.className = 'meow-overlay';
+    overlay.innerHTML = '<div class="meow-overlay-info">'
+        + '<a href="/p/' + m.id + '" class="meow-title">'
         + m.original_name.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</a>'
         + '<span class="meow-meta">'
-        + (m.uploaded_by_name ? m.uploaded_by_name + ' &middot; ' : '')
-        + formatSize(m.file_size)
-        + '</span>';
+        + (m.uploaded_by_name ? m.uploaded_by_name : '')
+        + '</span>'
+        + '</div>';
 
     card.appendChild(media);
-    card.appendChild(info);
-
-    if (isVideo) {
-        cardObserver.observe(card);
-    }
-
+    card.appendChild(overlay);
+    cardObserver.observe(card);
     return card;
 }
 
@@ -104,12 +99,15 @@ function loadPage() {
                 return;
             }
 
+            sentinel.hidden = true;
+
             for (const m of memes) {
                 feed.appendChild(buildCard(m));
             }
 
             page++;
             loading = false;
+            sentinel.hidden = false;
         })
         .catch(() => {
             loader.textContent = 'failed to load';
@@ -121,10 +119,8 @@ const sentinelObserver = new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting && !loading && hasMore) {
         loadPage();
     }
-}, { rootMargin: '600px' });
+}, { rootMargin: '800px' });
 
 sentinelObserver.observe(sentinel);
-
-
 </script>
 {% endblock %}
