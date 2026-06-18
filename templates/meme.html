@@ -4,7 +4,14 @@
 <meta property="og:title" content="nyapost #{{ meme.id }}">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ site_url }}/p/{{ meme.id }}">
+{% if meme.mime_type.startswith('video/') %}
+<meta property="og:video" content="{{ site_url }}/media/{{ meme.id }}">
+<meta property="og:video:type" content="{{ meme.mime_type }}">
+<meta property="og:image" content="{{ site_url }}/thumb/{{ meme.id }}">
+{% else %}
 <meta property="og:image" content="{{ site_url }}/media/{{ meme.id }}">
+<meta property="og:image:type" content="{{ meme.mime_type }}">
+{% endif %}
 {% if meme.uploaded_by_name %}
 <meta property="og:description" content="uploaded by {{ meme.uploaded_by_name }} · {{ meme.original_name }}">
 {% else %}
