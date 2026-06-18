@@ -669,18 +669,17 @@ def meows():
 
 @app.route("/api/meows")
 def api_meows():
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 5, type=int)
-    per_page = min(per_page, 20)
-    offset = (page - 1) * per_page
+    count = request.args.get("count", 10, type=int)
+    count = min(count, 30)
 
     with get_db() as conn:
+        total = conn.execute("SELECT COUNT(*) FROM memes").fetchone()[0]
         rows = conn.execute(
-            "SELECT id, filename, original_name, mime_type, file_size, uploaded_by_name FROM memes ORDER BY id DESC LIMIT ? OFFSET ?",
-            (per_page, offset),
+            "SELECT id, filename, original_name, mime_type, file_size, uploaded_by_name FROM memes ORDER BY RANDOM() LIMIT ?",
+            (count,),
         ).fetchall()
 
-    return jsonify([dict(r) for r in rows])
+    return jsonify({"memes": [dict(r) for r in rows], "total": total})
 
 
 # ── Main ─────────────────────────────────────────────────────────

@@ -14,16 +14,9 @@
 const feed = document.getElementById('meows-feed');
 const sentinel = document.getElementById('meows-sentinel');
 const loader = document.getElementById('meows-loader');
-let page = 1;
-let loading = false;
-let hasMore = true;
 
-function formatSize(bytes) {
-    if (!bytes) return '';
-    if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    if (bytes >= 1024) return (bytes / 1024).toFixed(0) + ' KB';
-    return bytes + ' B';
-}
+let queue = [];
+let loading = false;
 
 let activeCard = null;
 
@@ -31,13 +24,11 @@ function playCard(card) {
     if (activeCard === card) return;
     if (activeCard) {
         const v = activeCard.querySelector('video');
-        if (v) v.pause();
+        if (v) { v.pause(); v.currentTime = 0; }
     }
     activeCard = card;
     const video = card.querySelector('video');
     if (video) {
-        video.muted = true;
-        video.currentTime = 0;
         video.play().catch(() => {});
     }
 }
@@ -52,7 +43,7 @@ const cardObserver = new IntersectionObserver((entries) => {
             activeCard = null;
         }
     }
-}, { threshold: [0.7] });
+}, { threshold: [0.6] });
 
 function buildCard(m) {
     const isVideo = m.mime_type && m.mime_type.startsWith('video/');
@@ -63,7 +54,7 @@ function buildCard(m) {
     media.className = 'meow-media';
 
     if (isVideo) {
-        media.innerHTML = '<video src="/media/' + m.id + '" loop muted playsinline preload="metadata"></video>';
+        media.innerHTML = '<video src="/media/' + m.id + '" loop muted playsinline preload="auto"></video>';
     } else {
         media.innerHTML = '<img src="/media/' + m.id + '" alt="" loading="lazy">';
     }
@@ -84,30 +75,19 @@ function buildCard(m) {
     return card;
 }
 
-function loadPage() {
-    if (loading || !hasMore) return;
+function fetchBatch() {
+    if (loading) return Promise.resolve();
     loading = true;
     loader.textContent = 'loading...';
 
-    fetch('/api/meows?page=' + page + '&per_page=5', { signal: AbortSignal.timeout(10000) })
+    return fetch('/api/meows?count=10', { signal: AbortSignal.timeout(10000) })
         .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(memes => {
-            if (memes.length === 0) {
-                hasMore = false;
-                loader.textContent = 'no more meows';
-                loading = false;
-                return;
+        .then(data => {
+            for (const m of data.memes) {
+                queue.push(m);
             }
-
-            sentinel.hidden = true;
-
-            for (const m of memes) {
-                feed.insertBefore(buildCard(m), sentinel);
-            }
-
-            page++;
             loading = false;
-            sentinel.hidden = false;
+            loader.textContent = '';
         })
         .catch(() => {
             loader.textContent = 'failed to load';
@@ -115,11 +95,20 @@ function loadPage() {
         });
 }
 
-loadPage();
+function addCards() {
+    while (queue.length > 0) {
+        feed.insertBefore(buildCard(queue.shift()), sentinel);
+    }
+}
+
+fetchBatch().then(() => {
+    addCards();
+});
 
 const sentinelObserver = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting && !loading && hasMore) {
-        loadPage();
+    if (entries[0].isIntersecting && !loading && queue.length === 0) {
+        loader.textContent = 'loading...';
+        fetchBatch().then(() => addCards());
     }
 }, { rootMargin: '800px' });
 
