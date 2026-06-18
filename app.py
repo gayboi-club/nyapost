@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 import uuid
 import hashlib
 import hmac
@@ -221,17 +222,20 @@ def callback():
 
     try:
         data = urllib.parse.urlencode({
-            "client_id": config.DISCORD_CLIENT_ID,
-            "client_secret": config.DISCORD_CLIENT_SECRET,
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": config.DISCORD_REDIRECT_URI,
         }).encode()
 
+        creds = base64.b64encode(f"{config.DISCORD_CLIENT_ID}:{config.DISCORD_CLIENT_SECRET}".encode()).decode()
+
         req = urllib.request.Request(
             "https://discord.com/api/oauth2/token",
             data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Authorization": f"Basic {creds}",
+            },
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
             token_data = json.loads(resp.read())
@@ -245,6 +249,10 @@ def callback():
         with urllib.request.urlopen(req2, timeout=10) as resp2:
             user = json.loads(resp2.read())
 
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        app.logger.error("oauth2 token exchange failed: %s %s", e.code, body)
+        abort(502)
     except Exception as e:
         app.logger.error("oauth2 failed: %s", e, exc_info=True)
         abort(502)
