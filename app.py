@@ -315,15 +315,16 @@ def add_comment(meme_id):
             parent_id = None
 
     with get_db() as conn:
-        conn.execute(
+        cur = conn.execute(
             """INSERT INTO comments (meme_id, user_id, parent_id, content)
                VALUES (?, ?, ?, ?)""",
             (meme_id, session["discord_id"], parent_id, content),
         )
         conn.commit()
+        comment_id = cur.lastrowid
 
     invalidate_cache()
-    return redirect(url_for("meme_page", meme_id=meme_id) + f"#comment-{conn.lastrowid}")
+    return redirect(url_for("meme_page", meme_id=meme_id) + f"#comment-{comment_id}")
 
 
 @app.route("/comment/<int:comment_id>/delete", methods=["POST"])
