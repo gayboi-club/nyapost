@@ -777,6 +777,7 @@ footer a:hover {
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
 }
 
 .meow-media img,
@@ -837,6 +838,28 @@ footer a:hover {
 .meows-loader {
     color: var(--gray0);
     font-size: 0.9rem;
+}
+
+.meow-sound {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 5;
+    background: rgba(0,0,0,0.45);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff;
+    transition: background 0.15s;
+}
+
+.meow-sound:hover {
+    background: rgba(0,0,0,0.65);
 }
 
 .meows-back {

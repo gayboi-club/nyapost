@@ -19,6 +19,27 @@ let queue = [];
 let loading = false;
 
 let activeCard = null;
+let soundOn = false;
+
+function toggleSound() {
+    soundOn = !soundOn;
+    const video = activeCard?.querySelector('video');
+    if (video) {
+        video.muted = !soundOn;
+        updateSoundBtn(activeCard);
+    }
+}
+
+function updateSoundBtn(card) {
+    const btn = card?.querySelector('.meow-sound');
+    if (!btn) return;
+    const video = card.querySelector('video');
+    if (!video) { btn.hidden = true; return; }
+    btn.hidden = false;
+    btn.innerHTML = video.muted
+        ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'
+        : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+}
 
 function playCard(card) {
     if (activeCard === card) return;
@@ -29,11 +50,9 @@ function playCard(card) {
     activeCard = card;
     const video = card.querySelector('video');
     if (video) {
-        video.muted = false;
-        video.play().catch(() => {
-            video.muted = true;
-            video.play().catch(() => {});
-        });
+        video.muted = !soundOn;
+        video.play().catch(() => {});
+        updateSoundBtn(card);
     }
 }
 
@@ -58,7 +77,14 @@ function buildCard(m) {
     media.className = 'meow-media';
 
     if (isVideo) {
-        media.innerHTML = '<video src="/media/' + m.id + '" loop playsinline preload="auto"></video>';
+        media.innerHTML = '<video src="/media/' + m.id + '" loop muted playsinline preload="auto"></video>'
+            + '<button type="button" class="meow-sound" hidden aria-label="toggle sound">'
+            + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'
+            + '</button>';
+        media.querySelector('.meow-sound').addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleSound();
+        });
     } else {
         media.innerHTML = '<img src="/media/' + m.id + '" alt="" loading="lazy">';
     }
