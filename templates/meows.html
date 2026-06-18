@@ -35,10 +35,33 @@ function updateSoundBtn(card) {
     if (!btn) return;
     const video = card.querySelector('video');
     if (!video) { btn.hidden = true; return; }
-    btn.hidden = false;
     btn.innerHTML = video.muted
-        ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'
-        : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+        ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+        : '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+}
+
+function togglePause() {
+    const video = activeCard?.querySelector('video');
+    if (!video) return;
+    if (video.paused) {
+        video.play().catch(() => {});
+    } else {
+        video.pause();
+    }
+    updatePauseBtn(activeCard);
+}
+
+function updatePauseBtn(card) {
+    const btn = card?.querySelector('.meow-pause');
+    if (!btn) return;
+    const video = card.querySelector('video');
+    if (!video) { btn.hidden = true; return; }
+    if (video.paused) {
+        btn.innerHTML = '<svg width="50" height="50" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+        btn.hidden = false;
+    } else {
+        btn.hidden = true;
+    }
 }
 
 function playCard(card) {
@@ -53,6 +76,7 @@ function playCard(card) {
         video.muted = !soundOn;
         video.play().catch(() => {});
         updateSoundBtn(card);
+        updatePauseBtn(card);
     }
 }
 
@@ -78,9 +102,12 @@ function buildCard(m) {
 
     if (isVideo) {
         media.innerHTML = '<video src="/media/' + m.id + '" loop muted playsinline preload="auto"></video>'
-            + '<button type="button" class="meow-sound" hidden aria-label="toggle sound">'
-            + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>'
+            + '<div class="meow-pause"></div>'
+            + '<button type="button" class="meow-sound" aria-label="toggle sound">'
+            + '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
             + '</button>';
+        const videoEl = media.querySelector('video');
+        videoEl.addEventListener('click', togglePause);
         media.querySelector('.meow-sound').addEventListener('click', (e) => {
             e.stopPropagation();
             toggleSound();
