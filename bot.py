@@ -52,7 +52,6 @@ def get_db():
 
 
 @app_commands.command(name="nyapost", description="Upload a media file as a nyapost")
-@app_commands.default_permissions()
 @app_commands.guild_only()
 @app_commands.describe(file="The media file to upload as a nyapost")
 async def nyapost(interaction: discord.Interaction, file: discord.Attachment):
@@ -149,7 +148,6 @@ def generate_thumbnail(meme_id, source_path, mime_type):
 
 
 @app_commands.command(name="nyapost-refresh", description="Force rescan memes from disk")
-@app_commands.default_permissions()
 @app_commands.guild_only()
 async def nyapost_refresh(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=False)
