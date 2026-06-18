@@ -64,10 +64,22 @@ img, video {
 }
 
 header {
-    text-align: center;
     padding: 3rem 0 2rem;
     border-bottom: 1px solid var(--bg2);
     margin-bottom: 2rem;
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    text-align: center;
+}
+
+.header-title-group {
+    text-align: center;
 }
 
 .site-title {
@@ -98,6 +110,286 @@ header {
 
 .site-subtitle a:hover {
     color: var(--aqua);
+}
+
+.auth-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+}
+
+.auth-bar .avatar {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.auth-bar .auth-username {
+    color: var(--fg);
+    font-weight: 600;
+}
+
+.btn-login {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--bg3);
+    background: transparent;
+    color: var(--fg);
+    transition: border-color 0.15s ease, color 0.15s ease;
+    text-decoration: none;
+}
+
+.btn-login:hover {
+    border-color: var(--blue);
+    color: var(--blue);
+}
+
+.btn-login svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.btn-logout {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border: 1px solid var(--bg3);
+    background: transparent;
+    color: var(--gray0);
+    transition: border-color 0.15s ease, color 0.15s ease;
+    text-decoration: none;
+}
+
+.btn-logout:hover {
+    border-color: var(--red);
+    color: var(--red);
+}
+
+.avatar {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.comments-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--bg2);
+}
+
+.comments-section h2 {
+    font-size: 1.2rem;
+    color: var(--gray2);
+    margin-bottom: 1rem;
+}
+
+.comment-form {
+    margin-bottom: 1.5rem;
+}
+
+.comment-form textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.7rem;
+    border-radius: 6px;
+    border: 1px solid var(--bg3);
+    background: var(--bg1);
+    color: var(--fg);
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.comment-form textarea:focus {
+    outline: none;
+    border-color: var(--blue);
+}
+
+.comment-form .form-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    align-items: center;
+}
+
+.comment-form .form-actions .hint {
+    font-size: 0.75rem;
+    color: var(--gray0);
+}
+
+.comment {
+    padding: 0.8rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    background: var(--bg1);
+}
+
+.comment.reply {
+    margin-left: 2rem;
+    background: var(--bg-dim);
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.comment-header .avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+.comment-header .comment-username {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--fg);
+}
+
+.comment-header .comment-date {
+    font-size: 0.75rem;
+    color: var(--gray0);
+    margin-left: auto;
+}
+
+.comment-body {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--fg);
+    word-wrap: break-word;
+}
+
+.comment-body p {
+    margin-bottom: 0.4rem;
+}
+
+.comment-body p:last-child {
+    margin-bottom: 0;
+}
+
+.comment-body code {
+    background: var(--bg2);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+.comment-body pre {
+    background: var(--bg2);
+    padding: 0.6rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.85em;
+    margin: 0.4rem 0;
+}
+
+.comment-body blockquote {
+    border-left: 3px solid var(--blue);
+    padding-left: 0.6rem;
+    margin: 0.4rem 0;
+    color: var(--gray1);
+}
+
+.comment-body ul, .comment-body ol {
+    padding-left: 1.2rem;
+    margin: 0.4rem 0;
+}
+
+.comment-body a {
+    color: var(--blue);
+    text-decoration: underline;
+}
+
+.comment-body a:hover {
+    color: var(--green);
+}
+
+.comment-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+}
+
+.btn-reply, .btn-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--gray0);
+    padding: 0;
+    font-family: inherit;
+    transition: color 0.15s ease;
+}
+
+.btn-reply:hover {
+    color: var(--blue);
+}
+
+.btn-delete:hover {
+    color: var(--red);
+}
+
+.reply-form {
+    margin-top: 0.5rem;
+    display: none;
+}
+
+.reply-form.open {
+    display: block;
+}
+
+.reply-form textarea {
+    width: 100%;
+    min-height: 60px;
+    padding: 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--bg3);
+    background: var(--bg0);
+    color: var(--fg);
+    font-size: 0.85rem;
+    font-family: inherit;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.reply-form textarea:focus {
+    outline: none;
+    border-color: var(--blue);
+}
+
+.reply-form .form-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+}
+
+.login-prompt {
+    color: var(--gray0);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.login-prompt a {
+    color: var(--blue);
+    text-decoration: underline;
+}
+
+.no-comments {
+    color: var(--gray0);
+    font-size: 0.9rem;
+    font-style: italic;
 }
 
 .meme-grid {

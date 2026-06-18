@@ -5,3 +5,4 @@ discord.py>=2.3
 python-magic>=0.4
 python-dotenv>=1.0
 Pillow>=10.0
+mistune>=3.0

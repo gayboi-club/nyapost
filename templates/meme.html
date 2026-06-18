@@ -50,6 +50,81 @@
         <button class="btn btn-primary" id="randomBtnSingle">Random</button>
     </div>
 </div>
+
+<div class="comments-section">
+    <h2>Comments</h2>
+
+    {% if logged_in %}
+    <form class="comment-form" action="{{ url_for('add_comment', meme_id=meme.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <textarea name="content" required placeholder="leave a comment... (markdown supported)"></textarea>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">post</button>
+            <span class="hint">**bold** `code` *italic* ~~strikethrough~~ [links](url)</span>
+        </div>
+    </form>
+    {% else %}
+    <p class="login-prompt"><a href="{{ url_for('login', next=request.full_path) }}">log in with discord</a> to leave a comment</p>
+    {% endif %}
+
+    {% if comments %}
+    <div class="comments-list">
+    {% for comment in comments %}
+        <div class="comment" id="comment-{{ comment.id }}">
+            <div class="comment-header">
+                {{ avatar(comment.user_id, comment.avatar_hash, 24) }}
+                <span class="comment-username">{{ comment.username }}</span>
+                <span class="comment-date">{{ comment.created_at | timeago }}</span>
+            </div>
+            <div class="comment-body">{{ comment.rendered | safe }}</div>
+            <div class="comment-actions">
+                {% if logged_in %}
+                <button class="btn-reply" data-comment-id="{{ comment.id }}">reply</button>
+                {% endif %}
+                {% if logged_in and current_user.id == comment.user_id %}
+                <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="POST" style="display:inline" onsubmit="return confirm('delete this comment?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn-delete">delete</button>
+                </form>
+                {% endif %}
+            </div>
+            <div class="reply-form" id="reply-form-{{ comment.id }}">
+                <form action="{{ url_for('add_comment', meme_id=meme.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                    <textarea name="content" required placeholder="write a reply..."></textarea>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">reply</button>
+                        <button type="button" class="btn-reply" data-comment-id="{{ comment.id }}">cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            {% for reply in comment.replies %}
+            <div class="comment reply" id="comment-{{ reply.id }}">
+                <div class="comment-header">
+                    {{ avatar(reply.user_id, reply.avatar_hash, 24) }}
+                    <span class="comment-username">{{ reply.username }}</span>
+                    <span class="comment-date">{{ reply.created_at | timeago }}</span>
+                </div>
+                <div class="comment-body">{{ reply.rendered | safe }}</div>
+                {% if logged_in and current_user.id == reply.user_id %}
+                <div class="comment-actions">
+                    <form action="{{ url_for('delete_comment', comment_id=reply.id) }}" method="POST" style="display:inline" onsubmit="return confirm('delete this comment?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn-delete">delete</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-comments">no comments yet</p>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -59,6 +134,19 @@ const MEME_IDS = {{ all_ids|tojson }};
 document.getElementById('randomBtnSingle')?.addEventListener('click', () => {
     if (MEME_IDS.length === 0) return;
     window.location.href = '/p/' + MEME_IDS[Math.floor(Math.random() * MEME_IDS.length)];
+});
+
+document.querySelectorAll('.btn-reply').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const commentId = btn.dataset.commentId;
+        const form = document.getElementById('reply-form-' + commentId);
+        if (form) {
+            form.classList.toggle('open');
+            if (form.classList.contains('open') && btn.textContent === 'reply') {
+                form.querySelector('textarea').focus();
+            }
+        }
+    });
 });
 </script>
 {% endblock %}
