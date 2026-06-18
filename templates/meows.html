@@ -5,85 +5,126 @@
     <h1>meows</h1>
 </div>
 
-<div class="meows-feed" id="meows-feed">
-    <div class="meows-loader" id="meows-loader">loading...</div>
+<div class="meows-feed" id="meows-feed"></div>
+
+<div class="meows-sentinel" id="meows-sentinel">
+    <span class="meows-loader" id="meows-loader">loading...</span>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 const feed = document.getElementById('meows-feed');
+const sentinel = document.getElementById('meows-sentinel');
 const loader = document.getElementById('meows-loader');
 let page = 1;
 let loading = false;
 let hasMore = true;
 
 function formatSize(bytes) {
+    if (!bytes) return '';
     if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     if (bytes >= 1024) return (bytes / 1024).toFixed(0) + ' KB';
     return bytes + ' B';
+}
+
+let activeCard = null;
+
+function playCard(card) {
+    if (activeCard === card) return;
+    if (activeCard) {
+        const v = activeCard.querySelector('video');
+        if (v) v.pause();
+    }
+    activeCard = card;
+    const video = card.querySelector('video');
+    if (video) {
+        video.muted = true;
+        video.play().catch(() => {});
+    }
+}
+
+const cardObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+        if (entry.isIntersecting) {
+            playCard(entry.target);
+        } else if (entry.target === activeCard) {
+            const v = entry.target.querySelector('video');
+            if (v) v.pause();
+            activeCard = null;
+        }
+    }
+}, { threshold: [0.6] });
+
+function buildCard(m) {
+    const isVideo = m.mime_type && m.mime_type.startsWith('video/');
+    const card = document.createElement('div');
+    card.className = 'meow-card';
+
+    const media = document.createElement('div');
+    media.className = 'meow-media';
+
+    if (isVideo) {
+        media.innerHTML = '<video src="/media/' + m.id + '" loop muted playsinline preload="metadata"></video>';
+    } else {
+        media.innerHTML = '<img src="/media/' + m.id + '" alt="" loading="lazy">';
+    }
+
+    const info = document.createElement('div');
+    info.className = 'meow-info';
+    info.innerHTML = '<a href="/p/' + m.id + '" class="meow-title">'
+        + m.original_name.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</a>'
+        + '<span class="meow-meta">'
+        + (m.uploaded_by_name ? m.uploaded_by_name + ' &middot; ' : '')
+        + formatSize(m.file_size)
+        + '</span>';
+
+    card.appendChild(media);
+    card.appendChild(info);
+
+    if (isVideo) {
+        cardObserver.observe(card);
+    }
+
+    return card;
 }
 
 function loadPage() {
     if (loading || !hasMore) return;
     loading = true;
     loader.textContent = 'loading...';
-    loader.hidden = false;
 
     fetch('/api/meows?page=' + page + '&per_page=5')
         .then(r => r.json())
         .then(memes => {
             if (memes.length === 0) {
                 hasMore = false;
-                loader.textContent = 'no more meows :3';
+                loader.textContent = 'no more meows';
+                loading = false;
                 return;
             }
 
-            memes.forEach(m => {
-                const isVideo = m.mime_type.startsWith('video/');
-                const card = document.createElement('div');
-                card.className = 'meow-card';
-
-                const media = document.createElement('div');
-                media.className = 'meow-media';
-
-                if (isVideo) {
-                    media.innerHTML = '<video src="/media/' + m.id + '" loop muted autoplay playsinline></video>';
-                } else {
-                    media.innerHTML = '<img src="/media/' + m.id + '" alt="" loading="lazy">';
-                }
-
-                const info = document.createElement('div');
-                info.className = 'meow-info';
-                info.innerHTML = '<a href="/p/' + m.id + '" class="meow-title">' + m.original_name.replace(/</g, '&lt;') + '</a>'
-                    + '<span class="meow-meta">'
-                    + (m.uploaded_by_name ? m.uploaded_by_name + ' &middot; ' : '')
-                    + formatSize(m.file_size)
-                    + '</span>';
-
-                card.appendChild(media);
-                card.appendChild(info);
-                feed.insertBefore(card, loader);
-            });
+            for (const m of memes) {
+                feed.appendChild(buildCard(m));
+            }
 
             page++;
             loading = false;
-            loader.hidden = true;
         })
         .catch(() => {
-            loader.textContent = 'failed to load :3';
+            loader.textContent = 'failed to load';
             loading = false;
         });
 }
 
-loadPage();
-
-const observer = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting) {
+const sentinelObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !loading && hasMore) {
         loadPage();
     }
-}, { rootMargin: '400px' });
+}, { rootMargin: '600px' });
 
-observer.observe(loader);
+sentinelObserver.observe(sentinel);
+
+
 </script>
 {% endblock %}
