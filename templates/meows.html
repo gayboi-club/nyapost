@@ -115,6 +115,8 @@ function loadPage() {
         });
 }
 
+loadPage();
+
 const sentinelObserver = new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting && !loading && hasMore) {
         loadPage();
