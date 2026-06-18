@@ -18,6 +18,11 @@ app.config["COMPRESS_REGISTER"] = True
 app.config["COMPRESS_MIMETYPES"] = ["text/html", "text/css", "application/json"]
 Compress(app)
 
+
+@app.context_processor
+def inject_globals():
+    return {"site_url": config.FLASK_BASE_URL}
+
 MEMES_DIR = Path(config.MEMES_DIR).resolve()
 THUMB_DIR = MEMES_DIR / "_thumbs"
 

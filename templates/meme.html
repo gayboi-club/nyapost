@@ -1,5 +1,19 @@
 {% extends "base.html" %}
 {% block title %}nyapost #{{ meme.id }}{% endblock %}
+{% block head %}
+<meta property="og:title" content="nyapost #{{ meme.id }}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ site_url }}/p/{{ meme.id }}">
+<meta property="og:image" content="{{ site_url }}/media/{{ meme.id }}">
+{% if meme.uploaded_by_name %}
+<meta property="og:description" content="uploaded by {{ meme.uploaded_by_name }} · {{ meme.original_name }}">
+{% else %}
+<meta property="og:description" content="{{ meme.original_name }}">
+{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="nyapost #{{ meme.id }}">
+<meta name="twitter:image" content="{{ site_url }}/media/{{ meme.id }}">
+{% endblock %}
 {% block content %}
 <div class="meme-single">
     <div class="meme-single-media">

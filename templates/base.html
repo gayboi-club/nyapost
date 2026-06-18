@@ -7,6 +7,7 @@
     <link rel="preload" href="{{ url_for('static', filename='css/everforest.css') }}" as="style">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/everforest.css') }}">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>N</text></svg>">
+    {% block head %}{% endblock %}
 </head>
 <body>
     <div class="container">
