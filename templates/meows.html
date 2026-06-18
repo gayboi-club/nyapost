@@ -29,7 +29,11 @@ function playCard(card) {
     activeCard = card;
     const video = card.querySelector('video');
     if (video) {
-        video.play().catch(() => {});
+        video.muted = false;
+        video.play().catch(() => {
+            video.muted = true;
+            video.play().catch(() => {});
+        });
     }
 }
 
@@ -54,7 +58,7 @@ function buildCard(m) {
     media.className = 'meow-media';
 
     if (isVideo) {
-        media.innerHTML = '<video src="/media/' + m.id + '" loop muted playsinline preload="auto"></video>';
+        media.innerHTML = '<video src="/media/' + m.id + '" loop playsinline preload="auto"></video>';
     } else {
         media.innerHTML = '<img src="/media/' + m.id + '" alt="" loading="lazy">';
     }
