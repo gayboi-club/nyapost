@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}nyapost{% endblock %}
+{% block content %}
+<div class="toolbar">
+    <button class="btn btn-primary" id="randomBtn">Random</button>
+</div>
+
+{% if memes %}
+<p class="meme-count">{{ memes|length }} nyapost{{ memes|length|pluralize }}</p>
+
+<div class="meme-grid">
+    {% for meme in memes %}
+    <div class="meme-card">
+        <a href="{{ url_for('meme_page', meme_id=meme.id) }}">
+            {% if meme.mime_type.startswith('video/') %}
+            <video class="meme-card-thumb" src="{{ url_for('media_file', meme_id=meme.id) }}" preload="metadata" muted></video>
+            {% else %}
+            <img class="meme-card-thumb" alt="{{ meme.original_name }}" loading="lazy" decoding="async" fetchpriority="low"
+                 src="{{ url_for('thumbnail', meme_id=meme.id) }}">
+            {% endif %}
+        </a>
+        <div class="meme-card-body">
+            <span class="meme-card-id"><a href="{{ url_for('meme_page', meme_id=meme.id) }}">#{{ meme.id }}</a></span>
+            <span class="meme-card-date">{{ meme.uploaded_at[:10] }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>no nyaposts yet</p>
+    <p class="sub">upload one with <code>/nyapost</code> in the discord</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MEME_IDS = {{ memes|map(attribute='id')|list|tojson }};
+
+document.getElementById('randomBtn')?.addEventListener('click', () => {
+    if (MEME_IDS.length === 0) return;
+    window.location.href = '/p/' + MEME_IDS[Math.floor(Math.random() * MEME_IDS.length)];
+});
+
+if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                if (el.dataset.src) { el.src = el.dataset.src; delete el.dataset.src; }
+                if (el.dataset.poster) { el.poster = el.dataset.poster; delete el.dataset.poster; }
+                observer.unobserve(el);
+            }
+        }
+    }, { rootMargin: '300px' });
+    document.querySelectorAll('[data-src]').forEach(el => observer.observe(el));
+}
+</script>
+{% endblock %}

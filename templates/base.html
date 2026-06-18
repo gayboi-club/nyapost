@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}nyapost{% endblock %} ~ nyapost</title>
+    <link rel="preload" href="{{ url_for('static', filename='css/everforest.css') }}" as="style">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/everforest.css') }}">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌲</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="site-title"><a href="{{ url_for('index') }}">nyapost</a></h1>
+            <p class="site-subtitle">by <a href="https://gayboi.club" target="_blank" rel="noopener">gayboi.club</a></p>
+            <p style="color: var(--gray0); font-size: 0.75rem; margin-top: 0.75rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+                this website may contain media aimed at a mature audience
+            </p>
+        </header>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer>
+            <p><a href="{{ url_for('stats') }}">stats</a> ~ nyapost ~ a <a href="https://gayboi.club" target="_blank" rel="noopener">gayboi.club</a> production</p>
+        </footer>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

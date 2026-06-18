@@ -1,0 +1,11 @@
+nyapost.db
+nyapost.db-shm
+nyapost.db-wal
+__pycache__/
+*.pyc
+.env
+memes/*
+!memes/.gitkeep
+*.log
+stdout.txt
+stderr.txt

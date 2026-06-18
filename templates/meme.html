@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}nyapost #{{ meme.id }}{% endblock %}
+{% block content %}
+<div class="meme-single">
+    <div class="meme-single-media">
+        {% if meme.mime_type.startswith('video/') %}
+        <video src="{{ url_for('media_file', meme_id=meme.id) }}" controls autoplay loop></video>
+        {% else %}
+        <img src="{{ url_for('media_file', meme_id=meme.id) }}" alt="{{ meme.original_name }}" fetchpriority="high">
+        {% endif %}
+    </div>
+
+    <div class="meme-single-meta">
+        <div><strong>ID</strong> <span class="value">#{{ meme.id }}</span></div>
+        <div><strong>Filename</strong> <span class="value">{{ meme.original_name }}</span></div>
+        {% if meme.uploaded_by_name %}
+        <div><strong>Uploaded by</strong> <span class="value">{{ meme.uploaded_by_name }}</span></div>
+        {% endif %}
+        <div><strong>Date</strong> <span class="value">{{ meme.uploaded_at[:19] }}</span></div>
+        <div><strong>Type</strong> <span class="value">{{ meme.mime_type }}</span></div>
+        {% if meme.file_size %}
+        <div><strong>Size</strong> <span class="value">{{ (meme.file_size / 1024)|round(1) }} KB</span></div>
+        {% endif %}
+    </div>
+
+    <div class="meme-single-actions">
+        <a href="{{ url_for('media_file', meme_id=meme.id) }}" class="btn btn-outline" download>Download</a>
+        <a href="{{ url_for('index') }}" class="btn btn-outline">Back</a>
+        <button class="btn btn-primary" id="randomBtnSingle">Random</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MEME_IDS = {{ all_ids|tojson }};
+
+document.getElementById('randomBtnSingle')?.addEventListener('click', () => {
+    if (MEME_IDS.length === 0) return;
+    window.location.href = '/p/' + MEME_IDS[Math.floor(Math.random() * MEME_IDS.length)];
+});
+</script>
+{% endblock %}

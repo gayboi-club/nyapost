@@ -1,0 +1,7 @@
+flask>=3.0
+flask-compress>=1.24
+waitress>=3.0
+discord.py>=2.3
+python-magic>=0.4
+python-dotenv>=1.0
+Pillow>=10.0

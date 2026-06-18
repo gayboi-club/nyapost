@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}stats{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 1rem; font-size: 1.3rem; color: var(--gray2);">stats</h2>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div style="background: var(--bg1); border-radius: 8px; padding: 1.2rem; text-align: center;">
+        <div style="font-size: 2rem; font-weight: 700; color: var(--green);">{{ total }}</div>
+        <div style="color: var(--gray1); font-size: 0.85rem;">nyaposts</div>
+    </div>
+    <div style="background: var(--bg1); border-radius: 8px; padding: 1.2rem; text-align: center;">
+        <div style="font-size: 2rem; font-weight: 700; color: var(--blue);">{{ (total_size / 1024 / 1024)|round(1) }}</div>
+        <div style="color: var(--gray1); font-size: 0.85rem;">MB total</div>
+    </div>
+</div>
+
+{% if top_uploaders %}
+<section style="margin-bottom: 2rem;">
+    <h3 style="color: var(--gray2); margin-bottom: 0.75rem; font-size: 1rem;">top uploaders</h3>
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+            <tr style="color: var(--gray0); border-bottom: 1px solid var(--bg2);">
+                <th style="text-align: left; padding: 0.5rem;">#</th>
+                <th style="text-align: left; padding: 0.5rem;">user</th>
+                <th style="text-align: right; padding: 0.5rem;">count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in top_uploaders %}
+            <tr style="border-bottom: 1px solid var(--bg1);">
+                <td style="padding: 0.5rem; color: var(--gray1);">{{ loop.index }}</td>
+                <td style="padding: 0.5rem;">{{ u.uploaded_by_name }}</td>
+                <td style="padding: 0.5rem; text-align: right; color: var(--green); font-weight: 600;">{{ u.count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+{% if types %}
+<section>
+    <h3 style="color: var(--gray2); margin-bottom: 0.75rem; font-size: 1rem;">file types</h3>
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+            <tr style="color: var(--gray0); border-bottom: 1px solid var(--bg2);">
+                <th style="text-align: left; padding: 0.5rem;">type</th>
+                <th style="text-align: right; padding: 0.5rem;">count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in types %}
+            <tr style="border-bottom: 1px solid var(--bg1);">
+                <td style="padding: 0.5rem;">{{ t.mime_type }}</td>
+                <td style="padding: 0.5rem; text-align: right; color: var(--blue); font-weight: 600;">{{ t.count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+<div style="margin-top: 2rem;">
+    <a href="{{ url_for('index') }}" class="btn btn-outline">← Back</a>
+</div>
+{% endblock %}
