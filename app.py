@@ -155,6 +155,10 @@ def verify_csrf():
 
 @app.context_processor
 def inject_globals():
+    def avatar(discord_id, avatar_hash, size=32):
+        url = avatar_url(avatar_hash, discord_id)
+        return f'<img class="avatar" src="{url}" width="{size}" height="{size}" alt="">'
+
     return {
         "site_url": config.FLASK_BASE_URL,
         "logged_in": "discord_id" in session,
@@ -164,13 +168,8 @@ def inject_globals():
             "avatar_hash": session.get("discord_avatar"),
         } if "discord_id" in session else None,
         "csrf_token": csrf_token,
+        "avatar": avatar,
     }
-
-
-@app.template_global
-def avatar(discord_id, avatar_hash, size=32):
-    url = avatar_url(avatar_hash, discord_id)
-    return f'<img class="avatar" src="{url}" width="{size}" height="{size}" alt="">'
 
 
 @app.template_filter("pluralize")
