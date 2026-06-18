@@ -194,37 +194,55 @@ header {
 
 .comment-form {
     margin-bottom: 1.5rem;
+    background: var(--bg-dim);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--bg2);
 }
 
 .comment-form textarea {
     width: 100%;
-    min-height: 80px;
-    padding: 0.7rem;
+    min-height: 100px;
+    padding: 0.75rem;
     border-radius: 6px;
     border: 1px solid var(--bg3);
-    background: var(--bg1);
+    background: var(--bg0);
     color: var(--fg);
     font-size: 0.9rem;
     font-family: inherit;
     resize: vertical;
-    line-height: 1.5;
+    line-height: 1.6;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
 }
 
 .comment-form textarea:focus {
     outline: none;
     border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(131, 165, 152, 0.2);
+}
+
+.comment-form textarea::placeholder {
+    color: var(--gray0);
+    opacity: 0.7;
 }
 
 .comment-form .form-actions {
     display: flex;
     gap: 0.5rem;
-    margin-top: 0.5rem;
+    margin-top: 0.6rem;
     align-items: center;
 }
 
 .comment-form .form-actions .hint {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: var(--gray0);
+    opacity: 0.75;
+    margin-left: auto;
+    padding: 0.2rem 0.5rem;
+    background: var(--bg0);
+    border-radius: 4px;
+    letter-spacing: 0.01em;
 }
 
 .comment {
@@ -232,11 +250,14 @@ header {
     border-radius: 6px;
     margin-bottom: 0.5rem;
     background: var(--bg1);
+    border: 1px solid var(--bg2);
 }
 
 .comment.reply {
     margin-left: 2rem;
     background: var(--bg-dim);
+    border-color: var(--bg2);
+    border-left: 2px solid var(--bg3);
 }
 
 .comment-header {
@@ -328,22 +349,46 @@ header {
     cursor: pointer;
     font-size: 0.75rem;
     color: var(--gray0);
-    padding: 0;
+    padding: 0.15rem 0.4rem;
     font-family: inherit;
-    transition: color 0.15s ease;
+    transition: color 0.15s ease, background 0.15s ease;
+    border-radius: 4px;
 }
 
 .btn-reply:hover {
     color: var(--blue);
+    background: rgba(131, 165, 152, 0.08);
 }
 
 .btn-delete:hover {
     color: var(--red);
+    background: rgba(230, 126, 128, 0.08);
+}
+
+.btn-cancel {
+    background: none;
+    border: 1px solid var(--bg3);
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--gray0);
+    padding: 0.25rem 0.6rem;
+    font-family: inherit;
+    border-radius: 4px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-cancel:hover {
+    color: var(--red);
+    border-color: var(--red);
 }
 
 .reply-form {
     margin-top: 0.5rem;
     display: none;
+    padding: 0.75rem;
+    background: var(--bg-dim);
+    border-radius: 6px;
+    border: 1px solid var(--bg2);
 }
 
 .reply-form.open {
@@ -362,17 +407,26 @@ header {
     font-family: inherit;
     resize: vertical;
     line-height: 1.5;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
 }
 
 .reply-form textarea:focus {
     outline: none;
     border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(131, 165, 152, 0.2);
+}
+
+.reply-form textarea::placeholder {
+    color: var(--gray0);
+    opacity: 0.7;
 }
 
 .reply-form .form-actions {
     display: flex;
     gap: 0.5rem;
-    margin-top: 0.4rem;
+    margin-top: 0.5rem;
+    justify-content: flex-end;
 }
 
 .login-prompt {
@@ -388,8 +442,13 @@ header {
 
 .no-comments {
     color: var(--gray0);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-style: italic;
+    text-align: center;
+    padding: 2rem 1rem;
+    background: var(--bg-dim);
+    border-radius: 6px;
+    border: 1px dashed var(--bg2);
 }
 
 .meme-grid {
