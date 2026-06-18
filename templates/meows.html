@@ -102,7 +102,7 @@ function loadPage() {
             sentinel.hidden = true;
 
             for (const m of memes) {
-                feed.appendChild(buildCard(m));
+                feed.insertBefore(buildCard(m), sentinel);
             }
 
             page++;
