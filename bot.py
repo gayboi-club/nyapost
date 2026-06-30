@@ -814,17 +814,16 @@ async def on_message(message):
     except Exception:
         pass
 
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
     if results:
         links = " ".join(f"{config.FLASK_BASE_URL}{r}" for r in results)
-        try:
-            await message.edit(content=links)
-        except Exception:
-            pass
+        await message.channel.send(links)
     else:
-        try:
-            await message.edit(content="❌ failed to upload")
-        except Exception:
-            pass
+        await message.channel.send("❌ failed to upload")
 
 
 # ── Main ─────────────────────────────────────────────────────────
