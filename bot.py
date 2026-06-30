@@ -582,11 +582,17 @@ async def on_message(message):
     if not channel_id or str(message.channel.id) != channel_id:
         return
 
+    raw_urls = re.findall(r'https?://[^\s<>"\'\[\]]+', message.content) if message.content else []
+    if not message.attachments and not raw_urls:
+        return
+
     await message.add_reaction("⏳")
 
     results = []
     all_ok = True
 
+    KNOWN_MEDIA_HOSTS = {"giphy.com", "media.giphy.com", "gfycat.com", "tenor.com", "media.tenor.com",
+                         "imgur.com", "i.imgur.com", "cdn.discordapp.com", "media.discordapp.net"}
     INSTA_DOMAINS = {"instagram.com", "www.instagram.com", "instagr.am", "www.instagr.am",
                      "kkinstagram.com", "www.kkinstagram.com"}
 
@@ -627,20 +633,23 @@ async def on_message(message):
             log.error("auto-upload attachment failed: %s", e, exc_info=True)
             all_ok = False
 
-    for raw_url in re.findall(r'https?://[^\s<>"\'\[\]]+', message.content):
+    for raw_url in raw_urls:
         try:
             parsed = urlparse(raw_url)
             hostname = parsed.hostname or ""
+            path = parsed.path or ""
 
             is_insta = any(hostname.endswith(d) for d in INSTA_DOMAINS)
-            if not is_insta and not any(hostname.endswith(d) for d in ("gif", "gfycat", "tenor", "cdn", ".gif", ".mp4", ".webm", ".mov", ".png", ".jpg", ".jpeg", ".webp")):
-                ext = os.path.splitext(parsed.path)[1].lower()
-                if ext not in config.ALLOWED_EXTENSIONS:
-                    log.info("auto-upload skipped url %s: not a media link", raw_url)
-                    continue
+            is_known_host = any(hostname.endswith(d) for d in KNOWN_MEDIA_HOSTS)
+            is_media_ext = os.path.splitext(path)[1].lower() in config.ALLOWED_EXTENSIONS
 
-            if is_insta and any(hostname.endswith(d) for d in ("instagram.com", "instagr.am")):
-                raw_url = f"https://kkinstagram.com{parsed.path}"
+            if not is_insta and not is_known_host and not is_media_ext:
+                log.info("auto-upload skipped url %s: not a recognizable media link", raw_url)
+                all_ok = False
+                continue
+
+            if is_insta and not hostname.endswith("kkinstagram.com"):
+                raw_url = f"https://kkinstagram.com{path}"
                 if parsed.query:
                     raw_url += f"?{parsed.query}"
 
