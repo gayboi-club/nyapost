@@ -635,6 +635,7 @@ async def on_message(message):
                          "imgur.com", "i.imgur.com", "cdn.discordapp.com", "media.discordapp.net"}
     INSTA_DOMAINS = {"instagram.com", "www.instagram.com", "instagr.am", "www.instagr.am",
                      "kkinstagram.com", "www.kkinstagram.com"}
+    TENOR_EMBED_RE = re.compile(r'<meta\s+property="og:(?:video|image)"\s+content="([^"]+)"', re.IGNORECASE)
 
     for attachment in message.attachments:
         ext = os.path.splitext(attachment.filename)[1].lower()
@@ -692,6 +693,18 @@ async def on_message(message):
                 raw_url = f"https://kkinstagram.com{path}"
                 if parsed.query:
                     raw_url += f"?{parsed.query}"
+
+            if hostname == "tenor.com":
+                try:
+                    async with aiohttp.ClientSession() as sess:
+                        async with sess.get(raw_url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                            html = await resp.text()
+                    m = TENOR_EMBED_RE.search(html)
+                    if m:
+                        raw_url = m.group(1)
+                        log.info("resolved tenor url to %s", raw_url)
+                except Exception as e:
+                    log.info("failed to resolve tenor url %s: %s", raw_url, e)
 
             done = False
             if "discord" in hostname and "/attachments/" in path:
