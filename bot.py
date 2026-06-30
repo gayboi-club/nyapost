@@ -676,7 +676,7 @@ async def on_message(message):
                          "cdninstagram.com"}
     INSTA_DOMAINS = {"instagram.com", "www.instagram.com", "instagr.am", "www.instagr.am",
                      "kkinstagram.com", "www.kkinstagram.com"}
-    INSTA_SHORTCODE_RE = re.compile(r"/(?:p|reel|tv|share)/([A-Za-z0-9_-]+)")
+    INSTA_SHORTCODE_RE = re.compile(r"/(?:p|reel|reels|tv|share)/([A-Za-z0-9_-]+)")
     TENOR_EMBED_RE = re.compile(r'<meta[^>]*\s+property="og:(?:video(?::secure_url|:url)?|image)"\s+content="([^"]+)"', re.IGNORECASE)
 
     for attachment in message.attachments:
