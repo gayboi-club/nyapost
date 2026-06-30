@@ -178,46 +178,7 @@ def generate_thumbnail(meme_id, source_path, mime_type):
         pass
 
 
-_role_cache = {}
-_role_cache_lock = threading.Lock()
-ROLE_CACHE_TTL = 300
-
-
-def has_role(discord_id):
-    with _role_cache_lock:
-        entry = _role_cache.get(discord_id)
-        if entry and time.time() - entry["t"] < ROLE_CACHE_TTL:
-            return entry["v"]
-
-    try:
-        req = urllib.request.Request(
-            f"https://discord.com/api/v10/guilds/{config.DISCORD_GUILD_ID}/members/{discord_id}",
-            headers={
-                "Authorization": f"Bot {config.DISCORD_TOKEN}",
-                "User-Agent": "nyapost/1.0",
-            },
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            member = json.loads(resp.read())
-            roles = member.get("roles", [])
-            result = str(config.DISCORD_ROLE_ID) in roles
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            result = False
-        else:
-            app.logger.error("role check http %s: %s", e.code, e.read().decode(errors="replace"))
-            result = False
-    except Exception as e:
-        app.logger.error("role check failed: %s", e, exc_info=True)
-        result = False
-
-    with _role_cache_lock:
-        _role_cache[discord_id] = {"v": result, "t": time.time()}
-    return result
-
-
 # ── Context Processors ───────────────────────────────────────────
-
 @app.context_processor
 def inject_globals():
     def avatar(discord_id, avatar_hash, size=32):
@@ -592,9 +553,6 @@ def upload():
         return redirect(url_for("login", next=url_for("upload")))
 
     discord_id = session["discord_id"]
-    if not has_role(discord_id):
-        flash("you need the nyaposter role on this server to upload :3c", "error")
-        return redirect(url_for("index"))
 
     if request.method == "GET":
         return render_template("upload.html")
@@ -658,28 +616,6 @@ def upload():
     invalidate_cache()
 
     return redirect(url_for("meme_page", meme_id=meme_id))
-
-
-# ── Meows Feed ───────────────────────────────────────────────────
-
-@app.route("/meows")
-def meows():
-    return render_template("meows.html")
-
-
-@app.route("/api/meows")
-def api_meows():
-    count = request.args.get("count", 10, type=int)
-    count = min(count, 30)
-
-    with get_db() as conn:
-        total = conn.execute("SELECT COUNT(*) FROM memes").fetchone()[0]
-        rows = conn.execute(
-            "SELECT id, filename, original_name, mime_type, file_size, uploaded_by_name FROM memes ORDER BY RANDOM() LIMIT ?",
-            (count,),
-        ).fetchall()
-
-    return jsonify({"memes": [dict(r) for r in rows], "total": total})
 
 
 # ── Main ─────────────────────────────────────────────────────────

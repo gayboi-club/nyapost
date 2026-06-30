@@ -41,10 +41,18 @@ class NyapostBot(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        await self.tree.sync(guild=None)
         guild = discord.Object(id=config.DISCORD_GUILD_ID)
         self.tree.add_command(nyapost, guild=guild)
         self.tree.add_command(nyapost_refresh, guild=guild)
+        self.tree.add_command(nyapost_info, guild=guild)
+        self.tree.add_command(nyapost_recent, guild=guild)
+        self.tree.add_command(nyapost_my, guild=guild)
+        self.tree.add_command(nyapost_random, guild=guild)
+        self.tree.add_command(nyapost_search, guild=guild)
+        self.tree.add_command(nyapost_stats, guild=guild)
+        self.tree.add_command(nyapost_del, guild=guild)
+        self.tree.add_command(nyapost_purge, guild=guild)
+        self.tree.add_command(nyapost_config, guild=guild)
         await self.tree.sync(guild=guild)
 
 
@@ -54,7 +62,34 @@ client = NyapostBot()
 def get_db():
     conn = sqlite3.connect(config.DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
     return conn
+
+
+def get_config(key):
+    with get_db() as conn:
+        row = conn.execute("SELECT value FROM bot_config WHERE key = ?", (key,)).fetchone()
+        return row["value"] if row else None
+
+
+def set_config(key, value):
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO bot_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?",
+            (key, value, value),
+        )
+        conn.commit()
+
+
+def get_config_all():
+    with get_db() as conn:
+        return {r["key"]: r["value"] for r in conn.execute("SELECT key, value FROM bot_config").fetchall()}
+
+
+def is_mod(user_id):
+    mod_ids = get_config("mod_user_ids") or ""
+    return str(user_id) in [uid.strip() for uid in mod_ids.split(",") if uid.strip()]
 
 
 def generate_thumbnail(meme_id, source_path, mime_type):
@@ -176,7 +211,20 @@ async def save_to_db_and_finalize(source_path, orig_name, mime_type, file_size, 
     return meme_id
 
 
-# ─── Commands ─────────────────────────────────────────────────────
+def delete_meme_files(meme_id, filename):
+    file_path = Path(config.MEMES_DIR) / filename
+    try:
+        file_path.unlink(missing_ok=True)
+    except Exception as e:
+        log.error("failed to delete file %s: %s", file_path, e)
+    thumb = THUMB_DIR / f"{meme_id}.jpg"
+    try:
+        thumb.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+# ── Commands ─────────────────────────────────────────────────────
 
 @app_commands.command(name="nyapost", description="Upload a media file as a nyapost")
 @app_commands.guild_only()
@@ -187,11 +235,6 @@ async def nyapost(interaction: discord.Interaction, file: discord.Attachment = N
         return
     if file and url:
         await interaction.response.send_message("only one of file or url, not both :3c", ephemeral=True)
-        return
-
-    role = discord.utils.get(interaction.user.roles, id=config.DISCORD_ROLE_ID)
-    if role is None:
-        await interaction.response.send_message("nuh uh you need the nyaposter role :3c", ephemeral=True)
         return
 
     await interaction.response.defer(ephemeral=False)
@@ -279,12 +322,328 @@ async def nyapost_refresh(interaction: discord.Interaction):
         await interaction.followup.send("ack!! couldnt reach the site :3c")
 
 
+@app_commands.command(name="nyapost-info", description="Get details about a nyapost by ID")
+@app_commands.guild_only()
+@app_commands.describe(post_id="The ID of the nyapost")
+async def nyapost_info(interaction: discord.Interaction, post_id: int):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM memes WHERE id = ?", (post_id,)).fetchone()
+
+    if not row:
+        await interaction.response.send_message(f"nyapost #`{post_id}` doesnt exist :3c", ephemeral=True)
+        return
+
+    m = dict(row)
+    size_str = f"{m['file_size'] / 1024:.1f} KB" if m['file_size'] else "unknown"
+    uploader = m['uploaded_by_name'] or "anonymous"
+    link = f"{config.FLASK_BASE_URL}/p/{m['id']}"
+
+    embed = discord.Embed(
+        title=f"nyapost #{m['id']}",
+        description=f"**{m['original_name']}**",
+        url=link,
+        color=0xa7c080,
+    )
+    embed.add_field(name="Uploader", value=uploader, inline=True)
+    embed.add_field(name="Type", value=m['mime_type'], inline=True)
+    embed.add_field(name="Size", value=size_str, inline=True)
+    embed.add_field(name="Date", value=m['uploaded_at'][:19], inline=True)
+    embed.add_field(name="Link", value=f"[open]({link})", inline=False)
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@app_commands.command(name="nyapost-recent", description="Show the most recent nyaposts")
+@app_commands.guild_only()
+@app_commands.describe(count="Number of posts to show (1-10, default 5)")
+async def nyapost_recent(interaction: discord.Interaction, count: int = 5):
+    count = max(1, min(count, 10))
+
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, original_name, uploaded_by_name, mime_type FROM memes ORDER BY id DESC LIMIT ?",
+            (count,),
+        ).fetchall()
+
+    if not rows:
+        await interaction.response.send_message("no nyaposts yet :3c", ephemeral=True)
+        return
+
+    lines = []
+    for r in rows:
+        icon = "🎥" if r["mime_type"].startswith("video/") else "🖼️"
+        uploader = r["uploaded_by_name"] or "anon"
+        lines.append(f"{icon} **#{r['id']}** {r['original_name']} — {uploader} — {config.FLASK_BASE_URL}/p/{r['id']}")
+
+    await interaction.response.send_message("\n".join(lines))
+
+
+@app_commands.command(name="nyapost-my", description="Show your own recent nyaposts")
+@app_commands.guild_only()
+async def nyapost_my(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, original_name, uploaded_at, mime_type FROM memes WHERE uploaded_by = ? ORDER BY id DESC LIMIT 10",
+            (user_id,),
+        ).fetchall()
+        total = conn.execute("SELECT COUNT(*) FROM memes WHERE uploaded_by = ?", (user_id,)).fetchone()[0]
+
+    if not rows:
+        await interaction.response.send_message(
+            f"u havent uploaded anything yet :3c\nuse `/nyapost` to post something!",
+            ephemeral=True,
+        )
+        return
+
+    lines = [f"**{interaction.user.name}** — {total} total nyapost{'s' if total != 1 else ''}"]
+    for r in rows:
+        icon = "🎥" if r["mime_type"].startswith("video/") else "🖼️"
+        lines.append(f"{icon} **#{r['id']}** {r['original_name']} — {r['uploaded_at'][:10]} — {config.FLASK_BASE_URL}/p/{r['id']}")
+
+    await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+
+@app_commands.command(name="nyapost-random", description="Get a random nyapost link")
+@app_commands.guild_only()
+async def nyapost_random(interaction: discord.Interaction):
+    with get_db() as conn:
+        row = conn.execute("SELECT id, original_name FROM memes ORDER BY RANDOM() LIMIT 1").fetchone()
+
+    if not row:
+        await interaction.response.send_message("no nyaposts yet :3c", ephemeral=True)
+        return
+
+    link = f"{config.FLASK_BASE_URL}/p/{row['id']}"
+    await interaction.response.send_message(
+        f"🎲 random nyapost: **{row['original_name']}** — {link} :3c"
+    )
+
+
+@app_commands.command(name="nyapost-search", description="Search nyaposts by filename")
+@app_commands.guild_only()
+@app_commands.describe(query="Search query (min 2 characters)")
+async def nyapost_search(interaction: discord.Interaction, query: str):
+    if len(query) < 2:
+        await interaction.response.send_message("query too short, need at least 2 chars :3c", ephemeral=True)
+        return
+
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, original_name, uploaded_by_name, mime_type FROM memes WHERE original_name LIKE ? ORDER BY id DESC LIMIT 10",
+            (f"%{query}%",),
+        ).fetchall()
+
+    if not rows:
+        await interaction.response.send_message(f"no results for `{query}` :3c", ephemeral=True)
+        return
+
+    lines = [f"search results for `{query}`:"]
+    for r in rows:
+        icon = "🎥" if r["mime_type"].startswith("video/") else "🖼️"
+        uploader = r["uploaded_by_name"] or "anon"
+        lines.append(f"{icon} **#{r['id']}** {r['original_name']} — {uploader} — {config.FLASK_BASE_URL}/p/{r['id']}")
+
+    await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+
+@app_commands.command(name="nyapost-stats", description="Show nyapost stats")
+@app_commands.guild_only()
+async def nyapost_stats(interaction: discord.Interaction):
+    with get_db() as conn:
+        total = conn.execute("SELECT COUNT(*) FROM memes").fetchone()[0]
+        total_size = conn.execute("SELECT COALESCE(SUM(file_size), 0) FROM memes").fetchone()[0]
+        uploaders = conn.execute("SELECT COUNT(DISTINCT uploaded_by) FROM memes WHERE uploaded_by != ''").fetchone()[0]
+        images = conn.execute("SELECT COUNT(*) FROM memes WHERE mime_type LIKE 'image/%'").fetchone()[0]
+        videos = conn.execute("SELECT COUNT(*) FROM memes WHERE mime_type LIKE 'video/%'").fetchone()[0]
+
+    embed = discord.Embed(
+        title="nyapost stats",
+        color=0x7fbbb3,
+    )
+    embed.add_field(name="Total posts", value=str(total), inline=True)
+    embed.add_field(name="Images", value=str(images), inline=True)
+    embed.add_field(name="Videos", value=str(videos), inline=True)
+    embed.add_field(name="Total size", value=f"{total_size / 1024 / 1024:.1f} MB", inline=True)
+    embed.add_field(name="Uploaders", value=str(uploaders), inline=True)
+
+    await interaction.response.send_message(embed=embed)
+
+
+@app_commands.command(name="nyapost-del", description="Delete a nyapost by ID (mods only)")
+@app_commands.guild_only()
+@app_commands.describe(post_id="The ID of the nyapost to delete")
+async def nyapost_del(interaction: discord.Interaction, post_id: int):
+    if not is_mod(interaction.user.id):
+        await interaction.response.send_message("u dont have permission for that :3c", ephemeral=True)
+        return
+
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM memes WHERE id = ?", (post_id,)).fetchone()
+
+    if not row:
+        await interaction.response.send_message(f"nyapost #`{post_id}` doesnt exist :3c", ephemeral=True)
+        return
+
+    m = dict(row)
+    delete_meme_files(m["id"], m["filename"])
+
+    with get_db() as conn:
+        conn.execute("DELETE FROM memes WHERE id = ?", (post_id,))
+        conn.commit()
+
+    await interaction.response.send_message(
+        f"deleted nyapost #`{post_id}` (**{m['original_name']}**) by {m['uploaded_by_name'] or 'unknown'} :3c",
+        ephemeral=True,
+    )
+    log.info("mod %s deleted nyapost %s (%s)", interaction.user.id, post_id, m["filename"])
+
+
+@app_commands.command(name="nyapost-purge", description="Delete all nyaposts by a user (mods only)")
+@app_commands.guild_only()
+@app_commands.describe(user_id="The Discord user ID whose posts to delete")
+async def nyapost_purge(interaction: discord.Interaction, user_id: str):
+    if not is_mod(interaction.user.id):
+        await interaction.response.send_message("u dont have permission for that :3c", ephemeral=True)
+        return
+
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, filename, original_name FROM memes WHERE uploaded_by = ?", (user_id,)
+        ).fetchall()
+
+    if not rows:
+        await interaction.response.send_message(f"no nyaposts found for user `{user_id}` :3c", ephemeral=True)
+        return
+
+    for r in rows:
+        delete_meme_files(r["id"], r["filename"])
+
+    with get_db() as conn:
+        conn.execute("DELETE FROM memes WHERE uploaded_by = ?", (user_id,))
+        conn.commit()
+
+    await interaction.response.send_message(
+        f"purged {len(rows)} nyapost{'s' if len(rows) != 1 else ''} by user `{user_id}` :3c",
+        ephemeral=True,
+    )
+    log.info("mod %s purged %s posts by user %s", interaction.user.id, len(rows), user_id)
+
+
+@app_commands.command(name="nyapost-config", description="View or set bot config (mods only)")
+@app_commands.guild_only()
+@app_commands.describe(key="Config key to view or set", value="Value to set (omit to view current)")
+async def nyapost_config(interaction: discord.Interaction, key: str = None, value: str = None):
+    if not is_mod(interaction.user.id):
+        await interaction.response.send_message("u dont have permission for that :3c", ephemeral=True)
+        return
+
+    if key is None:
+        all_cfg = get_config_all()
+        if not all_cfg:
+            await interaction.response.send_message("no config values set :3c", ephemeral=True)
+            return
+        lines = ["**bot config:**"]
+        for k, v in all_cfg.items():
+            display = v if len(v) < 60 else v[:57] + "..."
+            lines.append(f"`{k}` = {display}")
+        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+        return
+
+    if value is None:
+        current = get_config(key)
+        if current is None:
+            await interaction.response.send_message(f"config key `{key}` not set :3c", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"`{key}` = {current}", ephemeral=True)
+        return
+
+    set_config(key, value)
+    await interaction.response.send_message(f"set `{key}` = {value} :3c", ephemeral=True)
+    log.info("mod %s set config %s = %s", interaction.user.id, key, value)
+
+
+# ── Events ───────────────────────────────────────────────────────
+
 @client.event
 async def on_ready():
     print(f"Logged in as {client.user} (ID: {client.user.id})")
     print(f"Serving guild {config.DISCORD_GUILD_ID}")
     print("------")
 
+
+@client.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    channel_id = get_config("auto_upload_channel")
+    if not channel_id or str(message.channel.id) != channel_id:
+        return
+
+    if not message.attachments:
+        return
+
+    await message.add_reaction("⏳")
+
+    results = []
+    all_ok = True
+
+    for attachment in message.attachments:
+        ext = os.path.splitext(attachment.filename)[1].lower()
+        if ext not in config.ALLOWED_EXTENSIONS:
+            all_ok = False
+            log.info("auto-upload skipped %s: bad extension %s", attachment.filename, ext)
+            continue
+
+        if attachment.size > config.MAX_FILE_SIZE:
+            all_ok = False
+            log.info("auto-upload skipped %s: too large", attachment.filename)
+            continue
+
+        mime_type = attachment.content_type or mimetypes.guess_type(attachment.filename)[0] or "application/octet-stream"
+        if not any(mime_type.startswith(p) for p in config.ALLOWED_MIME_PREFIXES):
+            all_ok = False
+            log.info("auto-upload skipped %s: bad mime %s", attachment.filename, mime_type)
+            continue
+
+        try:
+            data = await attachment.read()
+            tmp_path = Path(config.MEMES_DIR) / f"__tmp_{uuid.uuid4().hex}"
+            tmp_path.write_bytes(data)
+
+            meme_id = await save_to_db_and_finalize(
+                tmp_path, attachment.filename, mime_type, attachment.size,
+                str(message.author.id), message.author.name,
+            )
+
+            if meme_id:
+                results.append(f"/p/{meme_id}")
+                log.info("auto-uploaded %s as /p/%s", attachment.filename, meme_id)
+            else:
+                all_ok = False
+        except Exception as e:
+            log.error("auto-upload attachment failed: %s", e, exc_info=True)
+            all_ok = False
+
+    try:
+        await message.remove_reaction("⏳", client.user)
+    except Exception:
+        pass
+
+    if results:
+        await message.add_reaction("✅")
+        links = ", ".join(f"{config.FLASK_BASE_URL}{r}" for r in results)
+        reply = f"uploaded!! {links} :3c"
+        if not all_ok:
+            reply += " (some files couldnt be uploaded)"
+        await message.reply(reply)
+    else:
+        await message.add_reaction("❌")
+
+
+# ── Main ─────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     if not config.DISCORD_TOKEN:

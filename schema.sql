@@ -27,3 +27,11 @@ CREATE TABLE IF NOT EXISTS comments (
     content    TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS bot_config (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+INSERT OR IGNORE INTO bot_config (key, value) VALUES ('auto_upload_channel', '');
+INSERT OR IGNORE INTO bot_config (key, value) VALUES ('mod_user_ids', '1183135979154976769,972579451466575923');
