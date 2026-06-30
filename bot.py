@@ -141,14 +141,15 @@ async def download_from_url(url):
     tmp_name = f"{uuid.uuid4().hex}.tmp"
     tmp_path = INCOMING_DIR / tmp_name
 
+    hostname = urlparse(url).hostname or ""
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; nyapost-bot/1.0)",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
     }
 
-    hostname = urlparse(url).hostname or ""
     if "discord" in hostname or "discordapp" in hostname:
-        headers["Authorization"] = f"Bot {config.DISCORD_TOKEN}"
+        headers["Referer"] = "https://discord.com/"
+        headers["Accept"] = "*/*"
 
     async with aiohttp.ClientSession(headers=headers) as session:
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=120)) as resp:
