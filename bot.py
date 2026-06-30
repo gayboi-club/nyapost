@@ -582,13 +582,13 @@ async def on_message(message):
     if not channel_id or str(message.channel.id) != channel_id:
         return
 
-    if not message.attachments:
-        return
-
     await message.add_reaction("⏳")
 
     results = []
     all_ok = True
+
+    INSTA_DOMAINS = {"instagram.com", "www.instagram.com", "instagr.am", "www.instagr.am",
+                     "kkinstagram.com", "www.kkinstagram.com"}
 
     for attachment in message.attachments:
         ext = os.path.splitext(attachment.filename)[1].lower()
@@ -625,6 +625,37 @@ async def on_message(message):
                 all_ok = False
         except Exception as e:
             log.error("auto-upload attachment failed: %s", e, exc_info=True)
+            all_ok = False
+
+    for raw_url in re.findall(r'https?://[^\s<>"\'\[\]]+', message.content):
+        try:
+            parsed = urlparse(raw_url)
+            hostname = parsed.hostname or ""
+
+            is_insta = any(hostname.endswith(d) for d in INSTA_DOMAINS)
+            if not is_insta and not any(hostname.endswith(d) for d in ("gif", "gfycat", "tenor", "cdn", ".gif", ".mp4", ".webm", ".mov", ".png", ".jpg", ".jpeg", ".webp")):
+                ext = os.path.splitext(parsed.path)[1].lower()
+                if ext not in config.ALLOWED_EXTENSIONS:
+                    log.info("auto-upload skipped url %s: not a media link", raw_url)
+                    continue
+
+            if is_insta and any(hostname.endswith(d) for d in ("instagram.com", "instagr.am")):
+                raw_url = f"https://kkinstagram.com{parsed.path}"
+                if parsed.query:
+                    raw_url += f"?{parsed.query}"
+
+            tmp_path, orig_name, mime_type, file_size = await download_from_url(raw_url)
+            meme_id = await save_to_db_and_finalize(
+                tmp_path, orig_name, mime_type, file_size,
+                str(message.author.id), message.author.name,
+            )
+            if meme_id:
+                results.append(f"/p/{meme_id}")
+                log.info("auto-uploaded url %s as /p/%s", raw_url, meme_id)
+            else:
+                all_ok = False
+        except Exception as e:
+            log.info("auto-upload url failed %s: %s", raw_url, e)
             all_ok = False
 
     try:
