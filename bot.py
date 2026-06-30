@@ -633,8 +633,6 @@ async def on_message(message):
 
     KNOWN_MEDIA_HOSTS = {"giphy.com", "media.giphy.com", "gfycat.com", "tenor.com", "media.tenor.com",
                          "imgur.com", "i.imgur.com", "cdn.discordapp.com", "media.discordapp.net"}
-    INSTA_DOMAINS = {"instagram.com", "www.instagram.com", "instagr.am", "www.instagr.am",
-                     "kkinstagram.com", "www.kkinstagram.com"}
     TENOR_EMBED_RE = re.compile(r'<meta[^>]*\s+property="og:(?:video(?::secure_url|:url)?|image)"\s+content="([^"]+)"', re.IGNORECASE)
 
     for attachment in message.attachments:
@@ -680,19 +678,13 @@ async def on_message(message):
             hostname = parsed.hostname or ""
             path = parsed.path or ""
 
-            is_insta = any(hostname.endswith(d) for d in INSTA_DOMAINS)
             is_known_host = any(hostname.endswith(d) for d in KNOWN_MEDIA_HOSTS)
             is_media_ext = os.path.splitext(path)[1].lower() in config.ALLOWED_EXTENSIONS
 
-            if not is_insta and not is_known_host and not is_media_ext:
+            if not is_known_host and not is_media_ext:
                 log.info("auto-upload skipped url %s: not a recognizable media link", raw_url)
                 all_ok = False
                 continue
-
-            if is_insta and not hostname.endswith("kkinstagram.com"):
-                raw_url = f"https://kkinstagram.com{path}"
-                if parsed.query:
-                    raw_url += f"?{parsed.query}"
 
             if hostname in ("tenor.com", "www.tenor.com"):
                 try:
