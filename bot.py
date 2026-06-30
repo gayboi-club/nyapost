@@ -693,6 +693,38 @@ async def on_message(message):
                 if parsed.query:
                     raw_url += f"?{parsed.query}"
 
+            done = False
+            if "discord" in hostname and "/attachments/" in path:
+                parts = path.split("/")
+                if len(parts) >= 5 and parts[1] == "attachments":
+                    c_id = int(parts[2])
+                    m_id = int(parts[3])
+                    chan = client.get_channel(c_id)
+                    if chan:
+                        try:
+                            msg = await chan.fetch_message(m_id)
+                            for att in msg.attachments:
+                                ext = os.path.splitext(att.filename)[1].lower()
+                                if ext in config.ALLOWED_EXTENSIONS and att.size <= config.MAX_FILE_SIZE:
+                                    data = await att.read()
+                                    tmp = Path(config.MEMES_DIR) / f"__tmp_{uuid.uuid4().hex}"
+                                    tmp.write_bytes(data)
+                                    mime_type = att.content_type or "application/octet-stream"
+                                    mid = await save_to_db_and_finalize(
+                                        tmp, att.filename, mime_type, att.size,
+                                        str(message.author.id), message.author.name,
+                                    )
+                                    if mid:
+                                        results.append(f"/p/{mid}")
+                                        log.info("auto-uploaded discord attachment %s as /p/%s", att.filename, mid)
+                                        done = True
+                                        break
+                        except Exception:
+                            log.info("discord fetch failed for %s", raw_url)
+
+            if done:
+                continue
+
             tmp_path, orig_name, mime_type, file_size = await download_from_url(raw_url)
             meme_id = await save_to_db_and_finalize(
                 tmp_path, orig_name, mime_type, file_size,
