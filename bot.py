@@ -815,9 +815,16 @@ async def on_message(message):
         pass
 
     if results:
-        await message.add_reaction("✅")
+        links = " ".join(f"{config.FLASK_BASE_URL}{r}" for r in results)
+        try:
+            await message.edit(content=links)
+        except Exception:
+            pass
     else:
-        await message.add_reaction("❌")
+        try:
+            await message.edit(content="❌ failed to upload")
+        except Exception:
+            pass
 
 
 # ── Main ─────────────────────────────────────────────────────────
