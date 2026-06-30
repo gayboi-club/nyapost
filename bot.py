@@ -635,7 +635,7 @@ async def on_message(message):
                          "imgur.com", "i.imgur.com", "cdn.discordapp.com", "media.discordapp.net"}
     INSTA_DOMAINS = {"instagram.com", "www.instagram.com", "instagr.am", "www.instagr.am",
                      "kkinstagram.com", "www.kkinstagram.com"}
-    TENOR_EMBED_RE = re.compile(r'<meta\s+property="og:(?:video|image)"\s+content="([^"]+)"', re.IGNORECASE)
+    TENOR_EMBED_RE = re.compile(r'<meta[^>]*\s+property="og:(?:video(?::secure_url|:url)?|image)"\s+content="([^"]+)"', re.IGNORECASE)
 
     for attachment in message.attachments:
         ext = os.path.splitext(attachment.filename)[1].lower()
@@ -694,7 +694,7 @@ async def on_message(message):
                 if parsed.query:
                     raw_url += f"?{parsed.query}"
 
-            if hostname == "tenor.com":
+            if hostname in ("tenor.com", "www.tenor.com"):
                 try:
                     async with aiohttp.ClientSession() as sess:
                         async with sess.get(raw_url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
