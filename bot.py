@@ -668,19 +668,26 @@ async def on_message(message):
             all_ok = False
 
     try:
-        await message.remove_reaction("⏳", client.user)
+        await message.delete()
     except Exception:
         pass
 
     if results:
-        await message.add_reaction("✅")
         links = ", ".join(f"{config.FLASK_BASE_URL}{r}" for r in results)
         reply = f"uploaded!! {links} :3c"
         if not all_ok:
             reply += " (some files couldnt be uploaded)"
-        await message.reply(reply)
+        sent = await message.channel.send(reply)
+        try:
+            await sent.add_reaction("✅")
+        except Exception:
+            pass
     else:
-        await message.add_reaction("❌")
+        sent = await message.channel.send("couldnt upload that :3c")
+        try:
+            await sent.add_reaction("❌")
+        except Exception:
+            pass
 
 
 # ── Main ─────────────────────────────────────────────────────────
