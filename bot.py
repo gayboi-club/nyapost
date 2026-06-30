@@ -141,7 +141,12 @@ async def download_from_url(url):
     tmp_name = f"{uuid.uuid4().hex}.tmp"
     tmp_path = INCOMING_DIR / tmp_name
 
-    async with aiohttp.ClientSession() as session:
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; nyapost-bot/1.0)",
+        "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+    }
+
+    async with aiohttp.ClientSession(headers=headers) as session:
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=120)) as resp:
             if resp.status != 200:
                 raise ValueError(f"remote server returned {resp.status}")
@@ -149,6 +154,8 @@ async def download_from_url(url):
             content_type = resp.headers.get("Content-Type", "")
             if not any(content_type.startswith(p) for p in config.ALLOWED_MIME_PREFIXES):
                 raise ValueError(f"remote Content-Type '{content_type}' not allowed")
+
+            cd = resp.headers.get("Content-Disposition", "")
 
             size = 0
             with open(tmp_path, "wb") as f:
@@ -164,7 +171,6 @@ async def download_from_url(url):
         tmp_path.unlink(missing_ok=True)
         raise ValueError(f"actual content type '{mime_type}' not allowed")
 
-    cd = resp.headers.get("Content-Disposition", "")
     fname_match = re.search(r'filename\*?=(?:UTF-8\'\')?["\']?([^"\';]+)', cd, re.IGNORECASE)
     if fname_match:
         orig_name = fname_match.group(1).strip()
