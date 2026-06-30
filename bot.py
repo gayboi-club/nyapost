@@ -663,6 +663,7 @@ async def on_message(message):
         return
 
     raw_urls = re.findall(r'https?://[^\s<>"\'\[\]]+', message.content) if message.content else []
+    raw_urls = [p for u in raw_urls for p in re.split(r'(?=https?://)', u) if p.startswith("http")]
     if not message.attachments and not raw_urls:
         return
 
