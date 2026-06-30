@@ -5,6 +5,7 @@ import socket
 import sqlite3
 import mimetypes
 import logging
+import asyncio
 import magic
 from pathlib import Path
 from urllib.parse import urlparse
@@ -13,6 +14,7 @@ from ipaddress import ip_address
 from PIL import Image
 import aiohttp
 import discord
+import instaloader
 from discord import app_commands
 
 import config
@@ -30,6 +32,13 @@ logging.basicConfig(
     ],
 )
 log = logging.getLogger("nyapost.bot")
+
+_insta_loader = None
+def _get_instaloader():
+    global _insta_loader
+    if _insta_loader is None:
+        _insta_loader = instaloader.Instaloader()
+    return _insta_loader
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -632,7 +641,11 @@ async def on_message(message):
     all_ok = True
 
     KNOWN_MEDIA_HOSTS = {"giphy.com", "media.giphy.com", "gfycat.com", "tenor.com", "media.tenor.com",
-                         "imgur.com", "i.imgur.com", "cdn.discordapp.com", "media.discordapp.net"}
+                         "imgur.com", "i.imgur.com", "cdn.discordapp.com", "media.discordapp.net",
+                         "cdninstagram.com"}
+    INSTA_DOMAINS = {"instagram.com", "www.instagram.com", "instagr.am", "www.instagr.am",
+                     "kkinstagram.com", "www.kkinstagram.com"}
+    INSTA_SHORTCODE_RE = re.compile(r"/(?:p|reel|tv|share)/([A-Za-z0-9_-]+)")
     TENOR_EMBED_RE = re.compile(r'<meta[^>]*\s+property="og:(?:video(?::secure_url|:url)?|image)"\s+content="([^"]+)"', re.IGNORECASE)
 
     for attachment in message.attachments:
@@ -677,6 +690,31 @@ async def on_message(message):
             parsed = urlparse(raw_url)
             hostname = parsed.hostname or ""
             path = parsed.path or ""
+
+            is_insta = any(hostname.endswith(d) for d in INSTA_DOMAINS)
+            if is_insta:
+                m = INSTA_SHORTCODE_RE.search(path)
+                if m:
+                    sc = m.group(1)
+                    try:
+                        loop = asyncio.get_event_loop()
+                        loader = _get_instaloader()
+                        post = await loop.run_in_executor(
+                            None, lambda: instaloader.Post.from_shortcode(loader.context, sc)
+                        )
+                        raw_url = post.video_url or post.url
+                        log.info("resolved instagram url to %s", raw_url)
+                        parsed = urlparse(raw_url)
+                        hostname = parsed.hostname or ""
+                        path = parsed.path or ""
+                    except Exception as e:
+                        log.info("instagram resolve failed for %s: %s", raw_url, e)
+                        all_ok = False
+                        continue
+                else:
+                    log.info("no shortcode in instagram url: %s", raw_url)
+                    all_ok = False
+                    continue
 
             is_known_host = any(hostname.endswith(d) for d in KNOWN_MEDIA_HOSTS)
             is_media_ext = os.path.splitext(path)[1].lower() in config.ALLOWED_EXTENSIONS
