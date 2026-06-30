@@ -6,6 +6,8 @@ import sqlite3
 import mimetypes
 import logging
 import asyncio
+import json
+import subprocess
 import magic
 from pathlib import Path
 from urllib.parse import urlparse
@@ -14,7 +16,6 @@ from ipaddress import ip_address
 from PIL import Image
 import aiohttp
 import discord
-import instaloader
 from discord import app_commands
 
 import config
@@ -33,12 +34,42 @@ logging.basicConfig(
 )
 log = logging.getLogger("nyapost.bot")
 
-_insta_loader = None
-def _get_instaloader():
-    global _insta_loader
-    if _insta_loader is None:
-        _insta_loader = instaloader.Instaloader()
-    return _insta_loader
+COOKIES_FILE = Path(__file__).parent / "instagram_cookies.txt"
+
+async def _resolve_instagram_url(shortcode: str) -> str | None:
+    url = f"https://www.instagram.com/p/{shortcode}/"
+    cmd = [
+        "yt-dlp",
+        "--cookies", str(COOKIES_FILE),
+        "--dump-json", "--no-download",
+        url,
+    ]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            log.warning("yt-dlp failed for %s: %s", shortcode, stderr.decode(errors="replace"))
+            return None
+        data = json.loads(stdout)
+        formats = data.get("formats", [])
+        best = None
+        for f in formats:
+            if f.get("vcodec") != "none" and f.get("acodec") != "none":
+                if not best or (f.get("tbr") or 0) > (best.get("tbr") or 0):
+                    best = f
+        if best:
+            return best["url"]
+        for f in formats:
+            if f.get("vcodec") != "none":
+                return f["url"]
+        return data.get("thumbnail")
+    except Exception as e:
+        log.warning("instagram resolve failed for %s: %s", shortcode, e)
+        return None
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -696,19 +727,15 @@ async def on_message(message):
                 m = INSTA_SHORTCODE_RE.search(path)
                 if m:
                     sc = m.group(1)
-                    try:
-                        loop = asyncio.get_event_loop()
-                        loader = _get_instaloader()
-                        post = await loop.run_in_executor(
-                            None, lambda: instaloader.Post.from_shortcode(loader.context, sc)
-                        )
-                        raw_url = post.video_url or post.url
+                    media_url = await _resolve_instagram_url(sc)
+                    if media_url:
+                        raw_url = media_url
                         log.info("resolved instagram url to %s", raw_url)
                         parsed = urlparse(raw_url)
                         hostname = parsed.hostname or ""
                         path = parsed.path or ""
-                    except Exception as e:
-                        log.info("instagram resolve failed for %s: %s", raw_url, e)
+                    else:
+                        log.info("instagram resolve failed for %s", raw_url)
                         all_ok = False
                         continue
                 else:
