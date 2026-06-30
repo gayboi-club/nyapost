@@ -146,6 +146,10 @@ async def download_from_url(url):
         "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
     }
 
+    hostname = urlparse(url).hostname or ""
+    if "discord" in hostname or "discordapp" in hostname:
+        headers["Authorization"] = f"Bot {config.DISCORD_TOKEN}"
+
     async with aiohttp.ClientSession(headers=headers) as session:
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=120)) as resp:
             if resp.status != 200:
